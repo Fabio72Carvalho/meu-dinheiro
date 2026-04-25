@@ -3,16 +3,22 @@ import {
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut, 
-    onAuthStateChanged 
+    onAuthStateChanged,
+    updateProfile,
+    getAuth 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Função para Cadastrar Novo Usuário
-export const cadastrarUsuario = async (email, senha) => {
+export const cadastrarUsuario = async (nome, email, senha) => {
+    const auth = getAuth();
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+        // Atualiza o perfil com o nome digitado
+        await updateProfile(userCredential.user, {
+            displayName: nome
+        });
         return userCredential.user;
     } catch (error) {
-        console.error("Erro ao cadastrar:", error.code);
         throw error;
     }
 };
@@ -40,4 +46,23 @@ export const fazerLogout = async () => {
 // Monitorar o estado do usuário (Logado ou não)
 export const observarAutenticacao = (callback) => {
     onAuthStateChanged(auth, callback);
+};
+
+/**
+ * Atualiza o nome de exibição do usuário logado
+ * @param {string} novoNome 
+ */
+export const atualizarNomeUsuario = async (novoNome) => {
+    const auth = getAuth();
+    if (auth.currentUser) {
+        try {
+            await updateProfile(auth.currentUser, {
+                displayName: novoNome
+            });
+            return true;
+        } catch (error) {
+            console.error("Erro ao atualizar nome:", error);
+            throw error;
+        }
+    }
 };

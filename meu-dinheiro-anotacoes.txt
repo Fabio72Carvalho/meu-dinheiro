@@ -23,21 +23,76 @@ Aqui está o "ticket de continuidade". Basta copiar o texto abaixo e colar na no
 
 ### 🚀 Prompt para colar amanhã:
 
-> "Olá! Estou retomando o projeto **'Meu Dinheiro'**. Ontem finalizamos a estrutura de pastas, conectamos o GitHub e configuramos o Firebase. A **Autenticação (auth.js)** já está funcionando e testada. 
->
-> **Onde paramos:** O usuário consegue se cadastrar e logar, e o `app.js` já identifica o `userId`.
->
-> **Objetivo de hoje:** > 1. Configurar o arquivo `db.js` para interagir com o **Firestore**.
-> 2. Criar a lógica para o usuário cadastrar sua primeira **Conta** (ex: Carteira, Banco) seguindo a arquitetura de dados definida.
-> 3. Ajustar as **Security Rules** no Console do Firebase para proteger os dados por `userId`.
->
-> Vamos começar pelo arquivo `db.js`?"
+Olá! Estou retomando o projeto **'Meu Dinheiro'**. Já foi finalizada a estrutura de pastas, conectamos o GitHub e configuramos o Firebase. A **Autenticação (auth.js)** já está funcionando e testada. 
 
----
+**Onde paramos:** O usuário consegue se cadastrar e logar, e o `app.js` já identifica o `userId`.
 
-### Checklist de encerramento (hoje):
-* [ ] Executou o `git add .`?
-* [ ] Executou o `git commit -m "Sucesso: Autenticação Firebase funcionando"`?
-* [ ] Executou o `git push origin main`?
+**Objetivo de hoje:** > 1. Configurar o arquivo `db.js` para interagir com o **Firestore**.
+2. Criar a lógica para o usuário cadastrar sua primeira **Conta** (ex: Carteira, Banco) seguindo a arquitetura de dados definida.
+3. Ajustar as **Security Rules** no Console do Firebase para proteger os dados por `userId`.
 
-Bom descanso e nos vemos amanhã para dar vida ao banco de dados! 💸
+Vamos começar pelo arquivo `db.js`?
+
+
+
+Original verde:
+#27ae60
+
+Azul: Ficou legal: #00BFFF
+
+Outro azul: #1E90FF
+
+
+
+##### CADASTRAR CONTAS
+
+import { salvarConta } from './db.js';
+
+// Elementos da seção contas
+const secaoContas = document.getElementById('secao-contas');
+const btnSalvarConta = document.getElementById('btn-salvar-conta');
+const inputNomeConta = document.getElementById('nome-conta');
+const inputSaldoInicial = document.getElementById('saldo-inicial');
+
+
+// --- EVENTOS DE BANCO DE DADOS (Firestore) ---
+if (btnSalvarConta) {
+    btnSalvarConta.addEventListener('click', async () => {
+        const nome = inputNomeConta.value;
+        const saldo = inputSaldoInicial.value;
+
+        if (!nome || !saldo) {
+            alert("Por favor, preencha todos os campos da conta.");
+            return;
+        }
+
+        if (usuarioAtual) {
+            try {
+                const dadosConta = {
+                    nome: nome,
+                    saldoAtual: parseFloat(saldo)
+                };
+
+                await salvarConta(usuarioAtual.uid, dadosConta);
+
+                alert("Conta '" + nome + "' cadastrada com sucesso!");
+
+                // Limpar campos
+                inputNomeConta.value = '';
+                inputSaldoInicial.value = '';
+
+            } catch (error) {
+                alert("Erro ao salvar conta: " + error.message);
+            }
+        } else {
+            alert("Você precisa estar logado para cadastrar uma conta.");
+        }
+    });
+}
+
+        <div id="secao-contas" style="display:none;">
+            <h3>Cadastrar Nova Conta</h3>
+            <input type="text" id="nome-conta" placeholder="Ex: Carteira ou Itaú">
+            <input type="number" id="saldo-inicial" placeholder="Saldo Inicial (Ex: 100.00)">
+            <button id="btn-salvar-conta">Salvar Conta</button>
+        </div>
