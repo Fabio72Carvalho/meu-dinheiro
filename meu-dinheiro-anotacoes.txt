@@ -15,3 +15,29 @@ meu-dinheiro/
 
 
 - Agora que a pasta está conectada ao GitHub, me ajude a criar o arquivo js/auth.js para gerenciar o acesso via Email/Senha que definimos na stack
+
+
+Aqui está o "ticket de continuidade". Basta copiar o texto abaixo e colar na nossa primeira interação de amanhã. Ele resume onde paramos, o que já foi feito e qual é o próximo passo técnico, garantindo que eu recupere todo o contexto instantaneamente.
+
+---
+
+### 🚀 Prompt para colar amanhã:
+
+> "Olá! Estou retomando o projeto **'Meu Dinheiro'**. Ontem finalizamos a estrutura de pastas, conectamos o GitHub e configuramos o Firebase. A **Autenticação (auth.js)** já está funcionando e testada. 
+>
+> **Onde paramos:** O usuário consegue se cadastrar e logar, e o `app.js` já identifica o `userId`.
+>
+> **Objetivo de hoje:** > 1. Configurar o arquivo `db.js` para interagir com o **Firestore**.
+> 2. Criar a lógica para o usuário cadastrar sua primeira **Conta** (ex: Carteira, Banco) seguindo a arquitetura de dados definida.
+> 3. Ajustar as **Security Rules** no Console do Firebase para proteger os dados por `userId`.
+>
+> Vamos começar pelo arquivo `db.js`?"
+
+---
+
+### Checklist de encerramento (hoje):
+* [ ] Executou o `git add .`?
+* [ ] Executou o `git commit -m "Sucesso: Autenticação Firebase funcionando"`?
+* [ ] Executou o `git push origin main`?
+
+Bom descanso e nos vemos amanhã para dar vida ao banco de dados! 💸
