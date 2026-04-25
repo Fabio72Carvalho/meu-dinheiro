@@ -1,3 +1,5 @@
+https://github.com/Fabio72Carvalho/meu-dinheiro.git
+
 meu-dinheiro/
 ├── public/
 │   ├── index.html
@@ -10,3 +12,6 @@ meu-dinheiro/
 │       ├── ui.js               <-- Manipulação do DOM (Vanilla JS)
 │       └── app.js              <-- Arquivo principal/ponto de entrada
 └── firestore.rules             <-- Regras de segurança para o deploy
+
+
+- Agora que a pasta está conectada ao GitHub, me ajude a criar o arquivo js/auth.js para gerenciar o acesso via Email/Senha que definimos na stack
