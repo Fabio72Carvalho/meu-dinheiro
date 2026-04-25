@@ -1,0 +1,12 @@
+meu-dinheiro/
+├── public/
+│   ├── index.html
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── firebase-config.js  <-- Configurações e inicialização
+│       ├── auth.js             <-- Login, logout e estado do usuário
+│       ├── db.js               <-- Funções do Firestore (CRUD)
+│       ├── ui.js               <-- Manipulação do DOM (Vanilla JS)
+│       └── app.js              <-- Arquivo principal/ponto de entrada
+└── firestore.rules             <-- Regras de segurança para o deploy
