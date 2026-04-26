@@ -23,15 +23,34 @@ Aqui está o "ticket de continuidade". Basta copiar o texto abaixo e colar na no
 
 ### 🚀 Prompt para colar amanhã:
 
-Olá! Estou retomando o projeto **'Meu Dinheiro'**. Já foi finalizada a estrutura de pastas, conectamos o GitHub e configuramos o Firebase. A **Autenticação (auth.js)** já está funcionando e testada. 
+Ticket de Continuidade: Projeto "Meu Dinheiro"
+Status Atual:
 
-**Onde paramos:** O usuário consegue se cadastrar e logar, e o `app.js` já identifica o `userId`.
+Firestore: Ativado e configurado com Security Rules baseadas em userId.
 
-**Objetivo de hoje:** > 1. Configurar o arquivo `db.js` para interagir com o **Firestore**.
-2. Criar a lógica para o usuário cadastrar sua primeira **Conta** (ex: Carteira, Banco) seguindo a arquitetura de dados definida.
-3. Ajustar as **Security Rules** no Console do Firebase para proteger os dados por `userId`.
+Cadastro de Contas: Funcionando. O db.js já envia documentos para a coleção contas.
 
-Vamos começar pelo arquivo `db.js`?
+Melhoria de UI: Identificamos a necessidade de usar displayName em vez de apenas o e-mail nas boas-vindas.
+
+Debug: Erro de favicon resolvido/explicado.
+
+Objetivos para amanhã:
+
+Listagem de Contas: Criar a função no db.js para ler as contas do Firestore e exibi-las em uma lista ou tabela no index.html.
+
+Gestão de Perfil: Implementar o campo "Nome" no cadastro e a função de atualizar o nome para usuários existentes.
+
+Início das Transações: Se sobrar tempo, modelar o formulário para a primeira receita/despesa.
+
+Dica Final: Antes de fechar o VS Code, não esqueça do seu ritual de versionamento:
+
+git add .
+
+git commit -m "feat: integracao firestore e cadastro de contas funcionando"
+
+git push
+
+Bom descanso e até amanhã! 💰🚀
 
 
 
@@ -96,3 +115,18 @@ if (btnSalvarConta) {
             <input type="number" id="saldo-inicial" placeholder="Saldo Inicial (Ex: 100.00)">
             <button id="btn-salvar-conta">Salvar Conta</button>
         </div>
+		
+		
+		
+############### CADASTRAR CONTAS - FIM
+
+import { atualizarNomeUsuario } from './auth.js';
+
+// Exemplo de uso em um botão de "Salvar Perfil" <<<<------------------------------------------------------
+// const btnAtualizarPerfil = document.getElementById('btn-perfil');
+// btnAtualizarPerfil.addEventListener('click', async () => {
+//    const novoNome = document.getElementById('input-nome-perfil').value;
+//    await atualizarNomeUsuario(novoNome);
+//    alert("Nome atualizado!");
+//    location.reload(); // Recarrega para atualizar as boas-vindas
+// });
