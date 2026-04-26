@@ -2,7 +2,6 @@ import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from 
 import { getRequiredElement, alternarTelas } from './ui.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
-const btnSair = getRequiredElement('btn-sair');
 const mensagem = getRequiredElement('mensagem');
 const loginForm = getRequiredElement('auth-form');
 
@@ -93,6 +92,15 @@ observarAutenticacao((user) => {
     }
 });
 
-btnSair.addEventListener('click', async () => {
-    await fazerLogout();
-});
+// --- EVENTO DE SAÍDA ---
+const btnSair = getRequiredElement('btn-sair');
+if (btnSair) {
+    btnSair.addEventListener('click', async () => {
+        try {
+            await fazerLogout();
+            // O observarAutenticacao cuidará de voltar para a tela de login
+        } catch (error) {
+            console.error("Erro ao sair:", error);
+        }
+    });
+}
