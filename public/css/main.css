@@ -65,3 +65,34 @@ button {
 button:hover {
     filter: brightness(90%);
 }
+
+/* Estilos para o spinner */
+.spinner {
+    display: none; /* Escondido por padrão */
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Classe de estado carregando */
+.btn-loading .btn-text {
+    display: none; /* Esconde o texto "Entrar" ou "Cadastrar" */
+}
+
+.btn-loading .spinner {
+    display: block; /* Mostra a bolinha girando */
+}
+
+/* Impede cliques extras enquanto carrega */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
