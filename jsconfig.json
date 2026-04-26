@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "checkJs": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noImplicitAny": false,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "https://www.gstatic.com/firebasejs/10.8.0/*": [
+        "./node_modules/firebase/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

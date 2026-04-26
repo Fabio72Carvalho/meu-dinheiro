@@ -1,0 +1,24 @@
+{
+  "name": "meu-dinheiro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fabio72Carvalho/meu-dinheiro.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Fabio72Carvalho/meu-dinheiro/issues"
+  },
+  "homepage": "https://github.com/Fabio72Carvalho/meu-dinheiro#readme",
+  "devDependencies": {
+    "firebase": "^12.12.1"
+  }
+}

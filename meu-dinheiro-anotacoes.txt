@@ -1,65 +1,44 @@
 https://github.com/Fabio72Carvalho/meu-dinheiro.git
 
+
+
 meu-dinheiro/
-├── public/
-│   ├── index.html
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── firebase-config.js  <-- Configurações e inicialização
-│       ├── auth.js             <-- Login, logout e estado do usuário
-│       ├── db.js               <-- Funções do Firestore (CRUD)
-│       ├── ui.js               <-- Manipulação do DOM (Vanilla JS)
-│       └── app.js              <-- Arquivo principal/ponto de entrada
-└── firestore.rules             <-- Regras de segurança para o deploy
+├── css/
+│   ├── main.css      (cores e resets)
+│   ├── auth.css      (estilo do login/cadastro)
+│   └── dashboard.css (estilo da área logada)
+├── js/
+│   ├── firebase-config.js	x
+│   ├── auth.js       (lógica de login)	x
+│   ├── db.js         (lógica de banco de dados)	x
+│   ├── ui.js         (manipulação do DOM/HTML)	x
+│   └── app.js        (arquivo principal)	x
+├── index.html
+└── jsconfig.json
 
 
-- Agora que a pasta está conectada ao GitHub, me ajude a criar o arquivo js/auth.js para gerenciar o acesso via Email/Senha que definimos na stack
-
-
-Aqui está o "ticket de continuidade". Basta copiar o texto abaixo e colar na nossa primeira interação de amanhã. Ele resume onde paramos, o que já foi feito e qual é o próximo passo técnico, garantindo que eu recupere todo o contexto instantaneamente.
-
----
-
-### 🚀 Prompt para colar amanhã:
-
-Ticket de Continuidade: Projeto "Meu Dinheiro"
-Status Atual:
-
-Firestore: Ativado e configurado com Security Rules baseadas em userId.
-
-Cadastro de Contas: Funcionando. O db.js já envia documentos para a coleção contas.
-
-Melhoria de UI: Identificamos a necessidade de usar displayName em vez de apenas o e-mail nas boas-vindas.
-
-Debug: Erro de favicon resolvido/explicado.
-
-Objetivos para amanhã:
-
-Listagem de Contas: Criar a função no db.js para ler as contas do Firestore e exibi-las em uma lista ou tabela no index.html.
-
-Gestão de Perfil: Implementar o campo "Nome" no cadastro e a função de atualizar o nome para usuários existentes.
-
-Início das Transações: Se sobrar tempo, modelar o formulário para a primeira receita/despesa.
-
-Dica Final: Antes de fechar o VS Code, não esqueça do seu ritual de versionamento:
-
-git add .
-
-git commit -m "feat: integracao firestore e cadastro de contas funcionando"
-
-git push
-
-Bom descanso e até amanhã! 💰🚀
+meu-dinheiro/
+├── node_modules
+├── public
+|	├── css/
+|	│   ├── main.css      (cores e resets)
+|	│   ├── auth.css      (estilo do login/cadastro)
+|	│   └── dashboard.css (estilo da área logada)
+|	├── js/
+|	│   ├── firebase-config.js
+|	│   ├── auth.js       (lógica de login)
+|	│   ├── db.js         (lógica de banco de dados)
+|	│   ├── ui.js         (manipulação do DOM/HTML)
+|	│   └── app.js        (arquivo principal)
+|   └── index.html
+├── .gitignore
+├── favicon.ico
+├── package-lock.json
+├── package.json
+└── jsconfig.json
 
 
 
-Original verde:
-#27ae60
-
-Azul: Ficou legal: #00BFFF
-
-Outro azul: #1E90FF
 
 
 
