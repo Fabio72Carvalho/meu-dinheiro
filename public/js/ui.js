@@ -10,3 +10,22 @@ export const getRequiredElement = (id) => {
     }
     return el;
 };
+
+/**
+ * Alterna a visibilidade entre a tela de login e a tela principal do App
+ * @param {boolean} usuarioLogado 
+ */
+export const alternarTelas = (usuarioLogado) => {
+    const viewLogin = document.getElementById('view-login');
+    const viewMain = document.getElementById('view-main');
+
+    if (usuarioLogado) {
+        // Usuário entrou: esconde login, mostra app
+        if (viewLogin) viewLogin.style.display = 'none';
+        if (viewMain) viewMain.style.display = 'flex'; // Usamos flex para manter o layout do CSS
+    } else {
+        // Usuário saiu: mostra login, esconde app
+        if (viewLogin) viewLogin.style.display = 'block';
+        if (viewMain) viewMain.style.display = 'none';
+    }
+};

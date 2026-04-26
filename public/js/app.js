@@ -1,13 +1,9 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement } from './ui.js';
-
-// --- ESTADO GLOBAL ---
-let usuarioAtual = null;
+import { getRequiredElement, alternarTelas } from './ui.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const btnSair = getRequiredElement('btn-sair');
 const mensagem = getRequiredElement('mensagem');
-const userInfo = getRequiredElement('user-info');
 const loginForm = getRequiredElement('auth-form');
 
 // LISTENER PARA SUBMISSÃO DO FORMULÁRIO
@@ -36,7 +32,7 @@ loginForm.addEventListener('submit', async function (event) {
     } catch (error) {
         // 3. Tratamento de erro centralizado
         console.error("Erro na autenticação:", error);
-        
+
         if (error instanceof Error) {
             mensagem.innerText = `Erro: ${error.message}`;
         } else {
@@ -89,17 +85,11 @@ function toggleForm() {
  */
 observarAutenticacao((user) => {
     if (user) {
-        usuarioAtual = user;
-        // Prioriza o displayName, se não houver, usa o email
-        const nomeParaExibir = user.displayName || user.email;
-        /** @type {HTMLParagraphElement} */ (getRequiredElement('user-display-name')).innerText = nomeParaExibir;
-        loginForm.style.display = 'none';
-        userInfo.style.display = 'block';
+        const nomeExibicao = getRequiredElement('user-display-name');
+        nomeExibicao.innerText = user.displayName || user.email;
+        alternarTelas(true);
     } else {
-        usuarioAtual = null;
-        loginForm.style.display = 'block';
-        userInfo.style.display = 'none';
-        console.log("Nenhum usuário logado.");
+        alternarTelas(false);
     }
 });
 

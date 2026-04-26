@@ -7,10 +7,12 @@
     <title>Meu Dinheiro - Login</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/app-layout.css">
 </head>
 
 <body>
 
+    <!-- SECTION: Login -->
     <section id="view-login" class="login-container">
 
         <div class="logo-area">
@@ -50,15 +52,80 @@
 
         </form>
 
-        <div id="user-info" style="display: none;">
-            <p>Bem-vindo, <span id="user-display-name"></span>!</p>
-            <button id="btn-sair">Sair</button>
-        </div>
-
         <p id="mensagem"></p>
     </section>
 
-    <section id="view-dashboard" class="dashboard-container" style="display: none;">
+    <!-- SECTION: Main App -->
+    <section id="view-main" class="app-container" style="display: none;">
+
+        <header class="top-nav">
+            <div class="nav-left">
+                <h2 class="app-logo">Meu Dinheiro</h2>
+                <nav class="main-menu">
+                    <button class="nav-item active">Transações</button>
+                    <button class="nav-item">Análise</button>
+                </nav>
+            </div>
+            <div class="nav-right">
+                <span id="user-display-name">Carregando...</span>
+                <button id="btn-sair" class="btn-text">Sair</button>
+            </div>
+        </header>
+
+        <div class="month-selector-bar">
+            <div class="month-controls">
+                <button id="btn-prev-month" class="btn-icon">&lt;</button>
+                <h3 id="current-month-display">Maio 2026</h3>
+                <button id="btn-next-month" class="btn-icon">&gt;</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h4>Contas</h4>
+                        <button id="btn-nova-conta" class="btn-icon-small" title="Nova Conta">+</button>
+                    </div>
+                    <ul id="lista-contas" class="sidebar-list">
+                        <li class="empty-text">Nenhuma conta...</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h4>Categorias</h4>
+                        <button id="btn-nova-categoria" class="btn-icon-small" title="Nova Categoria">+</button>
+                    </div>
+                    <ul id="lista-categorias" class="sidebar-list">
+                        <li class="empty-text">Nenhuma categoria...</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <main class="transactions-area">
+                <div class="transactions-header">
+                    <div class="filters">
+                        <button class="filter-btn">Todas as Contas ▼</button>
+                    </div>
+                    <button id="btn-nova-transacao" class="btn-primary">+ Nova Transação</button>
+                </div>
+
+                <div id="lista-transacoes">
+                    <div class="daily-group" style="display: none;">
+                        <div class="daily-header">
+                            <span class="daily-date">15 de Maio</span>
+                            <span class="daily-balance">Saldo do dia: R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="empty-state">
+                        <p>Nenhuma transação neste mês.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
     </section>
 
     <script type="module" src="js/app.js"></script>
