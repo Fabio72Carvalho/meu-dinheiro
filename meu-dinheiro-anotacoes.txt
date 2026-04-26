@@ -1,6 +1,13 @@
 https://github.com/Fabio72Carvalho/meu-dinheiro.git
 
 
+Usuário factimao: bV2HCcy91WWnE0guYmxY1nPhNzc2"
+:root {
+    --primary-color: #1E90FF;
+    --secondary-color: #f39c12;
+    --bg-color: #f4f7f6;
+    --text-color: #333;
+}
 
 meu-dinheiro/
 ├── css/
@@ -16,7 +23,7 @@ meu-dinheiro/
 ├── index.html
 └── jsconfig.json
 
-
+Sim a organização faz sentido, porém segue a estrutura atual do projeto para você se atualizar:
 meu-dinheiro/
 ├── node_modules
 ├── public
@@ -109,3 +116,18 @@ import { atualizarNomeUsuario } from './auth.js';
 //    alert("Nome atualizado!");
 //    location.reload(); // Recarrega para atualizar as boas-vindas
 // });
+
+
+"Olá, Gemini! Estou retomando o projeto 'Meu Dinheiro'. Ontem nós reestruturamos o HTML para uma Single Page Application (SPA), criamos a tela principal (view-main) com barra superior (incluindo o logotipo), navegação de meses, barra lateral de contas/categorias e a área de transações.
+
+Onde paramos: A modularização do CSS (main.css, auth.css, app-layout.css) está concluída usando variáveis no :root. O ui.js já gerencia a troca de telas e o VS Code está 100% limpo de erros de tipagem graças ao jsconfig.json.
+
+Objetivos de hoje:
+
+Testar o botão 'Sair' para validar o fluxo contínuo da SPA.
+
+Criar a lógica do Seletor de Meses no JavaScript.
+
+Iniciar a funcionalidade do botão '+ Nova Conta' (abrir modal e conectar com o db.js para salvar no Firestore).
+
+Podemos começar pelo teste do botão de Sair?"
