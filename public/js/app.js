@@ -1,8 +1,8 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas, renderizarContas } from './ui.js';
+import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias } from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas , salvarConta } from './db.js';
+import { escutarContas, salvarConta, salvarCategoria, escutarCategorias } from './db.js';
 
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
@@ -15,11 +15,12 @@ const btnFecharModal = document.getElementById('btn-fechar-modal-conta');
 const formConta = document.getElementById('form-conta');
 
 let unsubscribeContas = null;
+let unsubscribeCategorias = null;
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log("Usuário identificado:", user.uid);
-        
+
         // 1. Limpa listener anterior se existir
         if (unsubscribeContas) unsubscribeContas();
 
@@ -28,12 +29,19 @@ onAuthStateChanged(auth, (user) => {
             renderizarContas(contas);
         });
 
+        // Inicia a escuta das categorias
+        if (unsubscribeCategorias) unsubscribeCategorias();
+        unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
+            renderizarCategorias(categorias);
+        })
+
     } else {
         // Se deslogar, para de ouvir o banco de dados
         if (unsubscribeContas) {
             unsubscribeContas();
             unsubscribeContas = null;
         }
+        if (unsubscribeCategorias) { unsubscribeCategorias(); unsubscribeCategorias = null; }
         // Redirecionar para login ou limpar a UI aqui
     }
 });
@@ -152,7 +160,7 @@ btnFecharModal.addEventListener('click', () => {
 // Salvar via Formulário
 formConta.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const dadosConta = {
         nome: document.getElementById('conta-nome').value,
         saldoAtual: document.getElementById('conta-saldo').value
@@ -161,11 +169,36 @@ formConta.addEventListener('submit', async (e) => {
     try {
         const userId = auth.currentUser.uid;
         await salvarConta(userId, dadosConta);
-        
+
         // Sucesso: fecha e limpa
         modalConta.classList.remove('active');
         formConta.reset();
     } catch (error) {
         alert("Erro ao salvar conta. Tente novamente.");
+    }
+});
+
+// --- LÓGICA DO MODAL DE CATEGORIA ---
+const modalCat = document.getElementById('modal-categoria');
+const btnAbrirCat = document.getElementById('btn-nova-categoria');
+const btnFecharCat = document.getElementById('btn-fechar-modal-categoria');
+const formCat = document.getElementById('form-categoria');
+
+btnAbrirCat.addEventListener('click', () => modalCat.classList.add('active'));
+btnFecharCat.addEventListener('click', () => {
+    modalCat.classList.remove('active');
+    formCat.reset();
+});
+
+formCat.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nome = document.getElementById('categoria-nome').value;
+    
+    try {
+        await salvarCategoria(auth.currentUser.uid, nome);
+        modalCat.classList.remove('active');
+        formCat.reset();
+    } catch (error) {
+        alert("Erro ao salvar categoria.");
     }
 });

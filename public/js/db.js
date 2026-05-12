@@ -47,3 +47,35 @@ export const escutarContas = (userId, callback) => {
         console.error("Erro ao buscar contas: ", error);
     });
 };
+
+
+/**
+ * Salva uma nova categoria no Firestore
+ */
+export const salvarCategoria = async (userId, nome) => {
+    try {
+        const docRef = await addDoc(collection(db, "categorias"), {
+            nome: nome,
+            userId: userId,
+            createdAt: serverTimestamp()
+        });
+        return docRef.id;
+    } catch (e) {
+        console.error("Erro ao adicionar categoria: ", e);
+        throw e;
+    }
+};
+
+/**
+ * Escuta as categorias do usuário em tempo real
+ */
+export const escutarCategorias = (userId, callback) => {
+    const q = query(collection(db, "categorias"), where("userId", "==", userId));
+    return onSnapshot(q, (querySnapshot) => {
+        const categorias = [];
+        querySnapshot.forEach((doc) => {
+            categorias.push({ id: doc.id, ...doc.data() });
+        });
+        callback(categorias);
+    });
+};

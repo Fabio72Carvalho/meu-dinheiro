@@ -55,3 +55,25 @@ export const renderizarContas = (contas) => {
         container.appendChild(div);
     });
 };
+
+/**
+ * Renderiza as categorias na barra lateral
+ */
+export const renderizarCategorias = (categorias) => {
+    const container = document.getElementById('lista-categorias');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (categorias.length === 0) {
+        container.innerHTML = '<li class="empty-text">Nenhuma categoria...</li>';
+        return;
+    }
+
+    categorias.forEach(cat => {
+        const li = document.createElement('li');
+        li.className = 'sidebar-item'; // Classe que você já usa no CSS
+        li.textContent = cat.nome;
+        container.appendChild(li);
+    });
+};
