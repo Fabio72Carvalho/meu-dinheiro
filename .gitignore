@@ -1,3 +1,11 @@
-# Pastas de ambiente ou logs
+# Logs do Firebase
+firebase-debug.log
+*.log
+
+# Pastas de Cache e Local do Firebase
+.firebase/
+hosting.*.cache
+
+# Outros lixos de sistema
 .DS_Store
 node_modules/

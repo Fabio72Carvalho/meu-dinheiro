@@ -1,7 +1,10 @@
 // Importando a instância do banco de dados do seu arquivo de configuração
 import { db } from './firebase-config.js';
 import { 
-    collection, 
+    collection,
+    query,
+    where,
+    onSnapshot,
     addDoc, 
     serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -25,4 +28,22 @@ export const salvarConta = async (userId, dadosConta) => {
         console.error("Erro ao adicionar conta: ", e);
         throw e;
     }
+};
+
+// Função para escutar as contas do usuário logado em tempo real
+export const escutarContas = (userId, callback) => {
+    // Filtro de segurança: busca apenas documentos onde o userId é igual ao do usuário atual
+    const q = query(collection(db, "contas"), where("userId", "==", userId));
+
+    // O onSnapshot mantém uma conexão aberta. 
+    // Ele retorna uma função de "unsubscribe" para fecharmos a conexão quando necessário.
+    return onSnapshot(q, (querySnapshot) => {
+        const contas = [];
+        querySnapshot.forEach((doc) => {
+            contas.push({ id: doc.id, ...doc.data() });
+        });
+        callback(contas);
+    }, (error) => {
+        console.error("Erro ao buscar contas: ", error);
+    });
 };

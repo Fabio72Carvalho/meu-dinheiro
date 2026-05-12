@@ -1,9 +1,37 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas } from './ui.js';
+import { getRequiredElement, alternarTelas, renderizarContas } from './ui.js';
+import { auth } from './firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { escutarContas } from './db.js';
+
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
 const loginForm = getRequiredElement('auth-form');
+
+let unsubscribeContas = null;
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        console.log("Usuário identificado:", user.uid);
+        
+        // 1. Limpa listener anterior se existir
+        if (unsubscribeContas) unsubscribeContas();
+
+        // 2. Inicia a escuta em tempo real das contas do usuário [cite: 2127]
+        unsubscribeContas = escutarContas(user.uid, (contas) => {
+            renderizarContas(contas);
+        });
+
+    } else {
+        // Se deslogar, para de ouvir o banco de dados
+        if (unsubscribeContas) {
+            unsubscribeContas();
+            unsubscribeContas = null;
+        }
+        // Redirecionar para login ou limpar a UI aqui
+    }
+});
 
 // LISTENER PARA SUBMISSÃO DO FORMULÁRIO
 loginForm.addEventListener('submit', async function (event) {

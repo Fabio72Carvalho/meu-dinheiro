@@ -29,3 +29,29 @@ export const alternarTelas = (usuarioLogado) => {
         if (viewMain) viewMain.style.display = 'none';
     }
 };
+
+// Função para renderizar as contas na interface
+export const renderizarContas = (contas) => {
+    const container = document.getElementById('lista-contas'); // Verifique se este ID existe no seu index.html
+    if (!container) return;
+
+    // Limpa a lista antes de renderizar para não duplicar itens [cite: 2128]
+    container.innerHTML = '';
+
+    if (contas.length === 0) {
+        container.innerHTML = '<p class="empty-msg">Nenhuma conta cadastrada.</p>';
+        return;
+    }
+
+    contas.forEach(conta => {
+        const div = document.createElement('div');
+        div.className = 'conta-card'; // Use suas classes de CSS aqui
+        div.innerHTML = `
+            <div class="conta-info">
+                <span class="conta-nome">${conta.nome}</span>
+                <span class="conta-saldo">R$ ${conta.saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+};
