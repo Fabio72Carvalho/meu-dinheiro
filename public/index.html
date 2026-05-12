@@ -132,6 +132,27 @@
         </div>
     </section>
 
+     <!-- --- MODAL: Nova Conta --- -->
+    <div id="modal-conta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nova Conta</h3>
+                <button id="btn-fechar-modal-conta" class="btn-close">&times;</button>
+            </div>
+            <form id="form-conta">
+                <div class="form-group">
+                    <label for="conta-nome">Nome da Conta</label>
+                    <input type="text" id="conta-nome" placeholder="Ex: Nubank, Carteira" required>
+                </div>
+                <div class="form-group">
+                    <label for="conta-saldo">Saldo Inicial</label>
+                    <input type="number" id="conta-saldo" step="0.01" placeholder="0,00" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Salvar Conta</button>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="js/app.js"></script>
 
 </body>

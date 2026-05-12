@@ -2,12 +2,17 @@ import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from 
 import { getRequiredElement, alternarTelas, renderizarContas } from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas } from './db.js';
+import { escutarContas , salvarConta } from './db.js';
 
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
 const loginForm = getRequiredElement('auth-form');
+// --- LÓGICA DO MODAL DE CONTA ---
+const modalConta = document.getElementById('modal-conta');
+const btnAbrirModal = document.getElementById('btn-nova-conta');
+const btnFecharModal = document.getElementById('btn-fechar-modal-conta');
+const formConta = document.getElementById('form-conta');
 
 let unsubscribeContas = null;
 
@@ -132,3 +137,35 @@ if (btnSair) {
         }
     });
 }
+
+// Abrir modal
+btnAbrirModal.addEventListener('click', () => {
+    modalConta.classList.add('active');
+});
+
+// Fechar modal
+btnFecharModal.addEventListener('click', () => {
+    modalConta.classList.remove('active');
+    formConta.reset();
+});
+
+// Salvar via Formulário
+formConta.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const dadosConta = {
+        nome: document.getElementById('conta-nome').value,
+        saldoAtual: document.getElementById('conta-saldo').value
+    };
+
+    try {
+        const userId = auth.currentUser.uid;
+        await salvarConta(userId, dadosConta);
+        
+        // Sucesso: fecha e limpa
+        modalConta.classList.remove('active');
+        formConta.reset();
+    } catch (error) {
+        alert("Erro ao salvar conta. Tente novamente.");
+    }
+});
