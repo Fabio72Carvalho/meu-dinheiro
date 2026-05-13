@@ -3,6 +3,7 @@ import { db } from './firebase-config.js';
 import { 
     collection,
     query,
+    orderBy,
     where,
     onSnapshot,
     addDoc, 
@@ -89,13 +90,9 @@ export const escutarCategorias = (userId, callback) => {
  * @returns {Promise<void>} - Retorna uma promessa que resolve quando a transação é concluída
  */
 // js/db.js
-
 export async function salvarTransacao(dados, userId) {
     const transacaoRef = doc(collection(db, "transacoes"));
     const contaOrigemRef = doc(db, "contas", dados.contaId);
-
-    // ❌ NÃO coloque a contaDestinoRef aqui fora, 
-    // pois se dados.contaDestinoId for undefined, o app quebra.
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -139,4 +136,21 @@ export async function salvarTransacao(dados, userId) {
         console.error("Erro na transação:", e);
         throw e;
     }
+}
+
+// escutarTransacoes.js
+export function escutarTransacoes(userId, callback) {
+    const q = query(
+        collection(db, "transacoes"),
+        where("userId", "==", userId),
+        orderBy("dataCriacao", "desc") // As mais recentes primeiro
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const transacoes = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(transacoes);
+    });
 }

@@ -146,3 +146,36 @@ export function mostrarTelaLogin() {
     if (viewMain) viewMain.style.display = 'none';
     if (viewLogin) viewLogin.style.display = 'flex'; // Usamos flex porque o container de login geralmente é centralizado
 }
+
+// js/ui.js
+
+export function renderizarTransacoes(transacoes) {
+    const listaCorpo = document.getElementById('lista-transacoes');
+    if (!listaCorpo) return;
+
+    listaCorpo.innerHTML = ''; // Limpa a lista antes de renderizar
+
+    if (transacoes.length === 0) {
+        listaCorpo.innerHTML = '<tr><td colspan="5" style="text-align:center">Nenhuma transação encontrada.</td></tr>';
+        return;
+    }
+
+    transacoes.forEach(t => {
+        // Formatar data (Firestore Timestamp para String PT-BR)
+        const data = t.dataCriacao?.toDate ? t.dataCriacao.toDate().toLocaleDateString('pt-BR') : '---';
+        
+        // Formatar valor e cor
+        const valorFormatado = t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${data}</td>
+            <td>${t.descricao}</td>
+            <td><span class="badge-categoria">${t.categoriaNome || 'Sem Categoria'}</span></td>
+            <td>${t.contaNome || 'Conta'}</td>
+            <td class="${classeCor}">${t.tipo === 'despesa' ? '-' : ''}${valorFormatado}</td>
+        `;
+        listaCorpo.appendChild(tr);
+    });
+}

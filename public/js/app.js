@@ -1,8 +1,8 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects } from './ui.js';
+import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects , renderizarTransacoes} from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas, escutarCategorias, salvarConta, salvarCategoria, salvarTransacao } from './db.js';
+import { escutarContas, escutarCategorias, escutarTransacoes , salvarConta, salvarCategoria, salvarTransacao } from './db.js';
 
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
@@ -16,9 +16,11 @@ const formConta = document.getElementById('form-conta');
 
 let unsubscribeContas = null;
 let unsubscribeCategorias = null;
+let unsubscribeTransacoes;
 
 let contasGlobais = [];
 let categoriasGlobais = [];
+let transacoesGlobais = [];
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -38,6 +40,13 @@ onAuthStateChanged(auth, (user) => {
             categoriasGlobais = categorias;
             renderizarCategorias(categorias);
             atualizarSelects(contasGlobais, categoriasGlobais);
+        });
+
+        unsubscribeTransacoes = escutarTransacoes(user.uid, (transacoes) => {
+            transacoesGlobais = transacoes; // Guarda na global igual às outras
+            renderizarTransacoes(transacoes); // Desenha a tabela
+            // Se você tiver algum resumo de saldo total na tela principal, 
+            // poderia chamar uma função de atualização aqui também.
         });
 
     } else {
