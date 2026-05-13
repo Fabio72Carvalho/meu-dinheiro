@@ -161,20 +161,16 @@ export function renderizarTransacoes(transacoes) {
     }
 
     transacoes.forEach(t => {
-        // Formatar data (Firestore Timestamp para String PT-BR)
-        const data = t.dataCriacao?.toDate ? t.dataCriacao.toDate().toLocaleDateString('pt-BR') : '---';
-        
+        const data = t.data ? new Date(t.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '---';
         // Formatar valor e cor
         const valorFormatado = t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${data}</td>
             <td>${t.descricao}</td>
-            <td><span class="badge-categoria">${t.categoriaNome || 'Sem Categoria'}</span></td>
             <td>${t.contaNome || 'Conta'}</td>
-            <td class="${classeCor}">${t.tipo === 'despesa' ? '-' : ''}${valorFormatado}</td>
+            <td class="${classeCor}">${valorFormatado}</td>
         `;
         listaCorpo.appendChild(tr);
     });

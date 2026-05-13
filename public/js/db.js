@@ -1,15 +1,15 @@
 // Importando a instância do banco de dados do seu arquivo de configuração
 import { db } from './firebase-config.js';
-import { 
+import {
     collection,
     query,
     orderBy,
     where,
     onSnapshot,
-    addDoc, 
+    addDoc,
     doc,
     runTransaction,
-    serverTimestamp 
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
@@ -51,7 +51,6 @@ export const escutarContas = (userId, callback) => {
     });
 };
 
-
 /**
  * Salva uma nova categoria no Firestore
  */
@@ -91,10 +90,10 @@ export const escutarCategorias = (userId, callback) => {
  */
 // js/db.js
 export async function salvarTransacao(dados, userId) {
-    const transacaoRef = doc(collection(db, "transacoes"));
-    const contaOrigemRef = doc(db, "contas", dados.contaId);
-
     try {
+        const transacaoRef = doc(collection(db, "transacoes"));
+        const contaOrigemRef = doc(db, "contas", dados.contaId);
+
         await runTransaction(db, async (transaction) => {
             const snapOrigem = await transaction.get(contaOrigemRef);
             if (!snapOrigem.exists()) throw "Conta de origem não encontrada!";
@@ -102,26 +101,45 @@ export async function salvarTransacao(dados, userId) {
             const saldoOrigem = snapOrigem.data().saldoAtual || 0;
 
             if (dados.tipo === 'transferencia') {
-                // ✅ AGORA SIM: Criamos a referência apenas quando necessário
-                if (!dados.contaDestinoId) throw "Selecione uma conta de destino!";
-                
                 const contaDestinoRef = doc(db, "contas", dados.contaDestinoId);
                 const snapDestino = await transaction.get(contaDestinoRef);
-                
                 if (!snapDestino.exists()) throw "Conta de destino não encontrada!";
 
                 const saldoDestino = snapDestino.data().saldoAtual || 0;
+                const contaDestinoNome = snapDestino.data().nome; // Pegamos o nome atualizado do banco
 
-                // Atualiza ambos os saldos
+                // 1. Registro de SAÍDA (Conta Origem)
+                const transacaoSaidaRef = doc(collection(db, "transacoes"));
+                transaction.set(transacaoSaidaRef, {
+                    ...dados,
+                    descricao: `Transf. para ${contaDestinoNome}: ${dados.descricao}`,
+                    tipo: 'despesa', // Tratamos como saída para a conta origem
+                    contaNome: dados.contaNome, // Nome capturado no select do app.js
+                    userId: userId,
+                    dataCriacao: serverTimestamp()
+                });
+
+                // 2. Registro de ENTRADA (Conta Destino)
+                const transacaoEntradaRef = doc(collection(db, "transacoes"));
+                transaction.set(transacaoEntradaRef, {
+                    ...dados,
+                    descricao: `Transf. de ${dados.contaNome}: ${dados.descricao}`,
+                    tipo: 'receita', // Tratamos como entrada para a conta destino
+                    contaId: dados.contaDestinoId, // Invertemos o ID para a conta destino
+                    contaNome: contaDestinoNome,   // Nome da conta destino
+                    userId: userId,
+                    dataCriacao: serverTimestamp()
+                });
+
+                // 3. Atualiza os saldos das duas contas
                 transaction.update(contaOrigemRef, { saldoAtual: saldoOrigem - dados.valor });
                 transaction.update(contaDestinoRef, { saldoAtual: saldoDestino + dados.valor });
-
             } else {
                 // Lógica normal para Receita ou Despesa
-                const novoSaldo = dados.tipo === 'receita' 
-                    ? saldoOrigem + dados.valor 
+                const novoSaldo = dados.tipo === 'receita'
+                    ? saldoOrigem + dados.valor
                     : saldoOrigem - dados.valor;
-                
+
                 transaction.update(contaOrigemRef, { saldoAtual: novoSaldo });
             }
 

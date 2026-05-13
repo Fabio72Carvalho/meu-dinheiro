@@ -162,6 +162,8 @@
     flex: 1;
     padding: 30px 40px;
     overflow-y: auto;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 12px;
 }
 
 .transactions-header {
@@ -275,4 +277,22 @@
     font-size: 0.85rem;
     margin-bottom: 5px;
     color: #666;
+}
+
+/* Cor para Receitas (ex: Verde) */
+.texto-receita {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Cor para Despesas (ex: Vermelho) */
+.texto-despesa {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Cor para Transferências (ex: Azul ou Cinza) */
+.texto-transferencia {
+    color: #007bff;
+    font-weight: bold;
 }

@@ -1,8 +1,8 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects , renderizarTransacoes} from './ui.js';
+import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects, renderizarTransacoes } from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas, escutarCategorias, escutarTransacoes , salvarConta, salvarCategoria, salvarTransacao } from './db.js';
+import { escutarContas, escutarCategorias, escutarTransacoes, salvarConta, salvarCategoria, salvarTransacao } from './db.js';
 
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
@@ -263,15 +263,23 @@ formTransacao.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     // Capturar os dados do formulário
+    const comboConta = document.getElementById('select-conta');
+    const comboCategoria = document.getElementById('select-categoria');
+    
     const dados = {
         descricao: document.getElementById('trans-descricao').value,
         valor: parseFloat(document.getElementById('trans-valor').value),
         tipo: document.getElementById('trans-tipo').value,
         data: document.getElementById('trans-data').value,
-        contaId: document.getElementById('select-conta').value,
-        categoriaId: document.getElementById('select-categoria').value,
+
+        contaId: comboConta.value,
+        categoriaId: comboCategoria.value,
+        contaDestinoId: document.getElementById('select-conta-destino').value,
+
         nota: document.getElementById('trans-nota').value,
-        contaDestinoId: document.getElementById('select-conta-destino').value
+
+        contaNome: comboConta.options[comboConta.selectedIndex].text,
+        categoriaNome: comboCategoria.options[comboCategoria.selectedIndex].text
     };
 
     try {
