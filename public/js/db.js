@@ -6,6 +6,8 @@ import {
     where,
     onSnapshot,
     addDoc, 
+    doc,
+    runTransaction,
     serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -79,3 +81,62 @@ export const escutarCategorias = (userId, callback) => {
         callback(categorias);
     });
 };
+
+/**
+ * Salva uma nova transação e atualiza o saldo da conta de forma atômica usando runTransaction
+ * @param {Object} dados - Objeto contendo os dados da transação (contaId, tipo, valor, categoriaId, descricao)
+ * @param {string} userId - ID do usuário autenticado
+ * @returns {Promise<void>} - Retorna uma promessa que resolve quando a transação é concluída
+ */
+// js/db.js
+
+export async function salvarTransacao(dados, userId) {
+    const transacaoRef = doc(collection(db, "transacoes"));
+    const contaOrigemRef = doc(db, "contas", dados.contaId);
+
+    // ❌ NÃO coloque a contaDestinoRef aqui fora, 
+    // pois se dados.contaDestinoId for undefined, o app quebra.
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const snapOrigem = await transaction.get(contaOrigemRef);
+            if (!snapOrigem.exists()) throw "Conta de origem não encontrada!";
+
+            const saldoOrigem = snapOrigem.data().saldoAtual || 0;
+
+            if (dados.tipo === 'transferencia') {
+                // ✅ AGORA SIM: Criamos a referência apenas quando necessário
+                if (!dados.contaDestinoId) throw "Selecione uma conta de destino!";
+                
+                const contaDestinoRef = doc(db, "contas", dados.contaDestinoId);
+                const snapDestino = await transaction.get(contaDestinoRef);
+                
+                if (!snapDestino.exists()) throw "Conta de destino não encontrada!";
+
+                const saldoDestino = snapDestino.data().saldoAtual || 0;
+
+                // Atualiza ambos os saldos
+                transaction.update(contaOrigemRef, { saldoAtual: saldoOrigem - dados.valor });
+                transaction.update(contaDestinoRef, { saldoAtual: saldoDestino + dados.valor });
+
+            } else {
+                // Lógica normal para Receita ou Despesa
+                const novoSaldo = dados.tipo === 'receita' 
+                    ? saldoOrigem + dados.valor 
+                    : saldoOrigem - dados.valor;
+                
+                transaction.update(contaOrigemRef, { saldoAtual: novoSaldo });
+            }
+
+            // Salva o registro da transação
+            transaction.set(transacaoRef, {
+                ...dados,
+                userId: userId,
+                dataCriacao: serverTimestamp()
+            });
+        });
+    } catch (e) {
+        console.error("Erro na transação:", e);
+        throw e;
+    }
+}

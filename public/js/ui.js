@@ -77,3 +77,72 @@ export const renderizarCategorias = (categorias) => {
         container.appendChild(li);
     });
 };
+
+// Função para atualizar os dropdowns do formulário de transação
+export function atualizarSelects(contas, categorias) {
+    const selectConta = document.getElementById('select-conta');
+    const selectDestino = document.getElementById('select-conta-destino');
+    const selectCategoria = document.getElementById('select-categoria');
+
+    if (!selectConta || !selectDestino || !selectCategoria) return;
+
+    // Limpar e preencher selects de conta (Origem e Destino)
+    const optionsContas = '<option value="">Selecione a Conta</option>' + 
+        contas.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    
+    selectConta.innerHTML = optionsContas;
+    selectDestino.innerHTML = optionsContas.replace("Selecione a Conta", "Conta de Destino");
+
+    // Preencher categorias
+    selectCategoria.innerHTML = '<option value="">Selecione a Categoria</option>' +
+        categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+// Função para alternar campos dependendo do tipo
+// js/ui.js
+
+export function tratarMudancaTipo(tipo) {
+    const groupDestino = document.getElementById('group-conta-destino');
+    const groupCategoria = document.getElementById('group-categoria'); // Agora pegamos o grupo
+    const selectCategoria = document.getElementById('select-categoria');
+
+    if (tipo === 'transferencia') {
+        // Mostra destino, esconde categoria
+        groupDestino.style.display = 'block';
+        groupCategoria.style.display = 'none';
+        
+        // Remove a obrigatoriedade da categoria para não travar o envio
+        selectCategoria.required = false; 
+    } else {
+        // Esconde destino, mostra categoria
+        groupDestino.style.display = 'none';
+        groupCategoria.style.display = 'block';
+        
+        // Volta a ser obrigatório para Receita e Despesa
+        selectCategoria.required = true;
+    }
+}
+
+// Exibe a tela principal do App e esconde o Login
+export function mostrarTelaApp(user) {
+    const viewLogin = document.getElementById('view-login');
+    const viewMain = document.getElementById('view-main');
+    const userDisplay = document.getElementById('user-display-name');
+
+    if (viewLogin) viewLogin.style.display = 'none';
+    if (viewMain) viewMain.style.display = 'block'; // Ou 'flex', dependendo do seu layout
+
+    // Atualiza o nome do usuário na barra superior (Diretriz de UI)
+    if (userDisplay) {
+        userDisplay.textContent = user.displayName || user.email;
+    }
+}
+
+// Exibe a tela de Login e esconde o App (usado no Logout ou falha de auth)
+export function mostrarTelaLogin() {
+    const viewLogin = document.getElementById('view-login');
+    const viewMain = document.getElementById('view-main');
+
+    if (viewMain) viewMain.style.display = 'none';
+    if (viewLogin) viewLogin.style.display = 'flex'; // Usamos flex porque o container de login geralmente é centralizado
+}

@@ -1,8 +1,8 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias } from './ui.js';
+import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects } from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas, salvarConta, salvarCategoria, escutarCategorias } from './db.js';
+import { escutarContas, escutarCategorias, salvarConta, salvarCategoria, salvarTransacao } from './db.js';
 
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
@@ -17,32 +17,44 @@ const formConta = document.getElementById('form-conta');
 let unsubscribeContas = null;
 let unsubscribeCategorias = null;
 
+let contasGlobais = [];
+let categoriasGlobais = [];
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        console.log("Usuário identificado:", user.uid);
+        // --- CASO: USUÁRIO LOGADO ---
+        console.log("Usuário logado:", user.uid);
+        mostrarTelaApp(user); // Troca a UI para a tela principal
 
-        // 1. Limpa listener anterior se existir
-        if (unsubscribeContas) unsubscribeContas();
-
-        // 2. Inicia a escuta em tempo real das contas do usuário [cite: 2127]
+        // 1. Iniciamos os ouvintes em tempo real
+        // Guardamos o retorno nas variáveis 'unsubscribe' para poder desligar depois
         unsubscribeContas = escutarContas(user.uid, (contas) => {
+            contasGlobais = contas;
             renderizarContas(contas);
+            atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
-        // Inicia a escuta das categorias
-        if (unsubscribeCategorias) unsubscribeCategorias();
         unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
+            categoriasGlobais = categorias;
             renderizarCategorias(categorias);
-        })
+            atualizarSelects(contasGlobais, categoriasGlobais);
+        });
 
     } else {
-        // Se deslogar, para de ouvir o banco de dados
-        if (unsubscribeContas) {
-            unsubscribeContas();
-            unsubscribeContas = null;
-        }
-        if (unsubscribeCategorias) { unsubscribeCategorias(); unsubscribeCategorias = null; }
-        // Redirecionar para login ou limpar a UI aqui
+        // --- CASO: USUÁRIO DESLOGADO (O "ESTRANHO" ELSE) ---
+        console.log("Nenhum usuário logado.");
+
+        // 1. IMPORTANTÍSSIMO: Parar de ouvir o banco de dados
+        // Se não fizermos isso, o app continua tentando ler dados mesmo deslogado
+        if (unsubscribeContas) unsubscribeContas();
+        if (unsubscribeCategorias) unsubscribeCategorias();
+
+        // 2. Limpar os dados globais para não sobrar rastro do usuário anterior
+        contasGlobais = [];
+        categoriasGlobais = [];
+
+        // 3. Voltar para a tela de login
+        mostrarTelaLogin();
     }
 });
 
@@ -193,7 +205,7 @@ btnFecharCat.addEventListener('click', () => {
 formCat.addEventListener('submit', async (e) => {
     e.preventDefault();
     const nome = document.getElementById('categoria-nome').value;
-    
+
     try {
         await salvarCategoria(auth.currentUser.uid, nome);
         modalCat.classList.remove('active');
@@ -202,3 +214,69 @@ formCat.addEventListener('submit', async (e) => {
         alert("Erro ao salvar categoria.");
     }
 });
+
+// --- TRANSAÇÃO - início ---
+const btnNovaTransacao = document.getElementById('btn-nova-transacao');
+const modalTransacao = document.getElementById('modal-transacao');
+const formTransacao = document.getElementById('form-transacao');
+const btnFecharTransacao = modalTransacao.querySelector('.close-btn');
+
+// 1. Abrir o Modal
+btnNovaTransacao.addEventListener('click', () => {
+    // Definir a data de hoje como padrão
+    document.getElementById('trans-data').valueAsDate = new Date();
+
+    // Abrir o modal
+    modalTransacao.style.display = 'block';
+});
+
+// 2. Fechar o Modal (No botão X)
+btnFecharTransacao.addEventListener('click', () => {
+    modalTransacao.style.display = 'none';
+});
+
+// 3. Fechar o Modal (Se clicar fora dele)
+window.addEventListener('click', (event) => {
+    if (event.target === modalTransacao) {
+        modalTransacao.style.display = 'none';
+    }
+});
+
+// Listener do tipo de transação para mostrar/ocultar campos
+const selectTipo = document.getElementById('trans-tipo');
+
+selectTipo.addEventListener('change', (e) => {
+    import('./ui.js').then(ui => ui.tratarMudancaTipo(e.target.value));
+});
+
+//  Salvar a Transação
+formTransacao.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Capturar os dados do formulário
+    const dados = {
+        descricao: document.getElementById('trans-descricao').value,
+        valor: parseFloat(document.getElementById('trans-valor').value),
+        tipo: document.getElementById('trans-tipo').value,
+        data: document.getElementById('trans-data').value,
+        contaId: document.getElementById('select-conta').value,
+        categoriaId: document.getElementById('select-categoria').value,
+        nota: document.getElementById('trans-nota').value,
+        contaDestinoId: document.getElementById('select-conta-destino').value
+    };
+
+    try {
+        // userId deve vir da sua lógica de autenticação (ex: auth.currentUser.uid)
+        const userId = auth.currentUser.uid;
+
+        await salvarTransacao(dados, userId);
+
+        alert('Transação salva com sucesso!');
+        formTransacao.reset();
+        modalTransacao.style.display = 'none';
+    } catch (error) {
+        console.error("Erro ao salvar:", error);
+        alert('Erro ao salvar transação. Verifique o console.');
+    }
+});
+// --- TRANSAÇÃO - fim ---
