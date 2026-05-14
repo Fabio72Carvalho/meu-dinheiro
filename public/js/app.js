@@ -1,9 +1,16 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, alternarTelas, renderizarContas, renderizarCategorias, mostrarTelaLogin, mostrarTelaApp, atualizarSelects, renderizarTransacoes } from './ui.js';
+import { getRequiredElement, 
+    alternarTelas, 
+    renderizarContas, 
+    renderizarCategorias, 
+    mostrarTelaLogin, 
+    mostrarTelaApp, 
+    atualizarSelects, 
+    renderizarTransacoes,
+    atualizarMesExibido } from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas, escutarCategorias, escutarTransacoes, salvarConta, salvarCategoria, salvarTransacao } from './db.js';
-
+import { escutarContas, escutarCategorias, escutarTransacoes, salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
@@ -14,9 +21,11 @@ const btnAbrirModal = document.getElementById('btn-nova-conta');
 const btnFecharModal = document.getElementById('btn-fechar-modal-conta');
 const formConta = document.getElementById('form-conta');
 
+let dataFiltroAtual = new Date();
+
 let unsubscribeContas = null;
 let unsubscribeCategorias = null;
-let unsubscribeTransacoes;
+let unsubscribeTransacoes = null;
 
 let contasGlobais = [];
 let categoriasGlobais = [];
@@ -42,25 +51,26 @@ onAuthStateChanged(auth, (user) => {
             atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
-        unsubscribeTransacoes = escutarTransacoes(user.uid, (transacoes) => {
-            transacoesGlobais = transacoes; // Guarda na global igual às outras
-            renderizarTransacoes(transacoes); // Desenha a tabela
-            // Se você tiver algum resumo de saldo total na tela principal, 
-            // poderia chamar uma função de atualização aqui também.
-        });
+        carregarTransacoesDoMes(user.uid);        
 
     } else {
         // --- CASO: USUÁRIO DESLOGADO (O "ESTRANHO" ELSE) ---
         console.log("Nenhum usuário logado.");
 
         // 1. IMPORTANTÍSSIMO: Parar de ouvir o banco de dados
-        // Se não fizermos isso, o app continua tentando ler dados mesmo deslogado
         if (unsubscribeContas) unsubscribeContas();
         if (unsubscribeCategorias) unsubscribeCategorias();
+        if (unsubscribeTransacoes) unsubscribeTransacoes();
 
         // 2. Limpar os dados globais para não sobrar rastro do usuário anterior
         contasGlobais = [];
         categoriasGlobais = [];
+        transacoesGlobais = [];
+
+        // 3. Limpar a UI (renderizações vazias)
+        renderizarContas([]);
+        renderizarCategorias([]);
+        renderizarTransacoes([]);
 
         // 3. Voltar para a tela de login
         mostrarTelaLogin();
@@ -265,12 +275,16 @@ formTransacao.addEventListener('submit', async (e) => {
     // Capturar os dados do formulário
     const comboConta = document.getElementById('select-conta');
     const comboCategoria = document.getElementById('select-categoria');
-    
+
+    // Converter a data do input para um objeto Date
+    const dataInput = document.getElementById('trans-data').value;
+    const dataObjeto = new Date(dataInput + "T12:00:00");
+
     const dados = {
         descricao: document.getElementById('trans-descricao').value,
         valor: parseFloat(document.getElementById('trans-valor').value),
         tipo: document.getElementById('trans-tipo').value,
-        data: document.getElementById('trans-data').value,
+        data: dataObjeto,
 
         contaId: comboConta.value,
         categoriaId: comboCategoria.value,
@@ -297,3 +311,30 @@ formTransacao.addEventListener('submit', async (e) => {
     }
 });
 // --- TRANSAÇÃO - fim ---
+
+// Função para iniciar a escuta de transações (chamada no login e na troca de mês)
+function carregarTransacoesDoMes(userId) {
+    const mes = dataFiltroAtual.getMonth();
+    const ano = dataFiltroAtual.getFullYear();
+
+    // Atualiza o texto no topo da tela (ex: "Maio de 2024")
+    atualizarMesExibido(mes, ano);
+
+    // Se já houver uma escuta ativa, cancela para não duplicar
+    if (unsubscribeTransacoes) unsubscribeTransacoes();
+
+    unsubscribeTransacoes = escutarTransacoesPorMes(userId, mes, ano, (transacoes) => {
+        renderizarTransacoes(transacoes);
+    });
+}
+
+// --- EVENT LISTENERS DE NAVEGAÇÃO DE MÊS ---
+document.getElementById('btn-prev-month').addEventListener('click', () => {
+    dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() - 1);
+    carregarTransacoesDoMes(auth.currentUser.uid);
+});
+
+document.getElementById('btn-next-month').addEventListener('click', () => {
+    dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() + 1);
+    carregarTransacoesDoMes(auth.currentUser.uid);
+});

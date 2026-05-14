@@ -1,7 +1,9 @@
 https://github.com/Fabio72Carvalho/meu-dinheiro.git
 
 
-Usuário factimao: bV2HCcy91WWnE0guYmxY1nPhNzc2"
+usuário fabio72.carvalho: 	B4wliLrePDVdqtf0OxMNx3yEQJ32
+Usuário factimao: 			bV2HCcy91WWnE0guYmxY1nPhNzc2
+
 :root {
     --primary-color: #1E90FF;
     --secondary-color: #f39c12;

@@ -9,7 +9,8 @@ import {
     addDoc,
     doc,
     runTransaction,
-    serverTimestamp
+    serverTimestamp,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
@@ -25,7 +26,6 @@ export const salvarConta = async (userId, dadosConta) => {
             userId: userId, // Princípio de Segurança: Vincular sempre ao usuário
             createdAt: serverTimestamp() // Boa prática: saber quando foi criado
         });
-        console.log("Conta criada com ID: ", docRef.id);
         return docRef.id;
     } catch (e) {
         console.error("Erro ao adicionar conta: ", e);
@@ -93,11 +93,10 @@ export async function salvarTransacao(dados, userId) {
     try {
         const transacaoRef = doc(collection(db, "transacoes"));
         const contaOrigemRef = doc(db, "contas", dados.contaId);
-
         await runTransaction(db, async (transaction) => {
+
             const snapOrigem = await transaction.get(contaOrigemRef);
             if (!snapOrigem.exists()) throw "Conta de origem não encontrada!";
-
             const saldoOrigem = snapOrigem.data().saldoAtual || 0;
 
             if (dados.tipo === 'transferencia') {
@@ -107,22 +106,22 @@ export async function salvarTransacao(dados, userId) {
 
                 const saldoDestino = snapDestino.data().saldoAtual || 0;
                 const contaDestinoNome = snapDestino.data().nome; // Pegamos o nome atualizado do banco
-
                 // 1. Registro de SAÍDA (Conta Origem)
                 const transacaoSaidaRef = doc(collection(db, "transacoes"));
                 transaction.set(transacaoSaidaRef, {
                     ...dados,
+                    data: Timestamp.fromDate(dados.data),
                     descricao: `Transf. para ${contaDestinoNome}: ${dados.descricao}`,
                     tipo: 'despesa', // Tratamos como saída para a conta origem
                     contaNome: dados.contaNome, // Nome capturado no select do app.js
                     userId: userId,
                     dataCriacao: serverTimestamp()
                 });
-
                 // 2. Registro de ENTRADA (Conta Destino)
                 const transacaoEntradaRef = doc(collection(db, "transacoes"));
                 transaction.set(transacaoEntradaRef, {
                     ...dados,
+                    data: Timestamp.fromDate(dados.data),
                     descricao: `Transf. de ${dados.contaNome}: ${dados.descricao}`,
                     tipo: 'receita', // Tratamos como entrada para a conta destino
                     contaId: dados.contaDestinoId, // Invertemos o ID para a conta destino
@@ -130,7 +129,6 @@ export async function salvarTransacao(dados, userId) {
                     userId: userId,
                     dataCriacao: serverTimestamp()
                 });
-
                 // 3. Atualiza os saldos das duas contas
                 transaction.update(contaOrigemRef, { saldoAtual: saldoOrigem - dados.valor });
                 transaction.update(contaDestinoRef, { saldoAtual: saldoDestino + dados.valor });
@@ -141,14 +139,14 @@ export async function salvarTransacao(dados, userId) {
                     : saldoOrigem - dados.valor;
 
                 transaction.update(contaOrigemRef, { saldoAtual: novoSaldo });
+                // Salva o registro da transação
+                transaction.set(transacaoRef, {
+                    ...dados,
+                    data: Timestamp.fromDate(dados.data),
+                    userId: userId,
+                    dataCriacao: serverTimestamp()
+                });
             }
-
-            // Salva o registro da transação
-            transaction.set(transacaoRef, {
-                ...dados,
-                userId: userId,
-                dataCriacao: serverTimestamp()
-            });
         });
     } catch (e) {
         console.error("Erro na transação:", e);
@@ -157,11 +155,36 @@ export async function salvarTransacao(dados, userId) {
 }
 
 // escutarTransacoes.js
+// REVIEW ver se ainda será necessária essa função:
 export function escutarTransacoes(userId, callback) {
     const q = query(
         collection(db, "transacoes"),
         where("userId", "==", userId),
-        orderBy("dataCriacao", "desc") // As mais recentes primeiro
+        orderBy("data", "asc") // Ordena por data, do mais antigo para o mais recente
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const transacoes = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(transacoes);
+    });
+}
+
+// js/db.js
+
+export function escutarTransacoesPorMes(userId, mes, ano, callback) {
+    // 1. Calcular o primeiro e o último segundo do mês selecionado
+    const dataInicio = new Date(ano, mes, 1, 0, 0, 0); // Meses em JavaScript são 0-indexados
+    const dataFim = new Date(ano, mes + 1, 0, 23, 59, 59); // O dia 0 do próximo mês é o último dia do mês atual
+
+    const q = query(
+        collection(db, "transacoes"),
+        where("userId", "==", userId),
+        where("data", ">=", Timestamp.fromDate(dataInicio)),
+        where("data", "<=", Timestamp.fromDate(dataFim)),
+        orderBy("data") // Ordena por data, do mais antigo para o mais recente
     );
 
     return onSnapshot(q, (snapshot) => {

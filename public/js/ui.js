@@ -148,7 +148,6 @@ export function mostrarTelaLogin() {
 }
 
 // js/ui.js
-
 export function renderizarTransacoes(transacoes) {
     const listaCorpo = document.getElementById('lista-transacoes');
     if (!listaCorpo) return;
@@ -161,7 +160,7 @@ export function renderizarTransacoes(transacoes) {
     }
 
     transacoes.forEach(t => {
-        const data = t.data ? new Date(t.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '---';
+        const data = t.data.toDate().toLocaleDateString('pt-BR'); // Formata a data para o formato brasileiro
         // Formatar valor e cor
         const valorFormatado = t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
@@ -174,4 +173,17 @@ export function renderizarTransacoes(transacoes) {
         `;
         listaCorpo.appendChild(tr);
     });
+}
+
+// js/ui.js
+export function atualizarMesExibido(mes, ano) {
+    const nomesMeses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    
+    const labelMes = document.getElementById('current-month-display');
+    if (labelMes) {
+        labelMes.textContent = `${nomesMeses[mes]} de ${ano}`;
+    }
 }
