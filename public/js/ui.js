@@ -31,11 +31,9 @@ export const alternarTelas = (usuarioLogado) => {
 };
 
 // Função para renderizar as contas na interface
-export const renderizarContas = (contas) => {
-    const container = document.getElementById('lista-contas'); // Verifique se este ID existe no seu index.html
+export const renderizarContas = (contas, idsSelecionados = []) => {
+    const container = document.getElementById('lista-contas');
     if (!container) return;
-
-    // Limpa a lista antes de renderizar para não duplicar itens [cite: 2128]
     container.innerHTML = '';
 
     if (contas.length === 0) {
@@ -45,12 +43,17 @@ export const renderizarContas = (contas) => {
 
     contas.forEach(conta => {
         const div = document.createElement('div');
-        div.className = 'conta-card'; // Use suas classes de CSS aqui
+        div.className = 'side-bar-item';
+        
+        // Mudança aqui: Verifica se o ID atual está dentro do array idsSelecionados
+        const IsChecked = idsSelecionados.includes(conta.id) ? 'checked' : '';
+
         div.innerHTML = `
             <div class="conta-info">
+                <input type="checkbox" class="filtro-conta-chk" data-id="${conta.id}" ${IsChecked}>    
                 <span class="conta-nome">${conta.nome}</span>
-                <span class="conta-saldo">R$ ${conta.saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
+            <span class="conta-saldo">R$ ${conta.saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         `;
         container.appendChild(div);
     });
@@ -59,10 +62,9 @@ export const renderizarContas = (contas) => {
 /**
  * Renderiza as categorias na barra lateral
  */
-export const renderizarCategorias = (categorias) => {
+export const renderizarCategorias = (categorias, idsSelecionados = []) => {
     const container = document.getElementById('lista-categorias');
     if (!container) return;
-
     container.innerHTML = '';
 
     if (categorias.length === 0) {
@@ -72,8 +74,17 @@ export const renderizarCategorias = (categorias) => {
 
     categorias.forEach(cat => {
         const li = document.createElement('li');
-        li.className = 'sidebar-item'; // Classe que você já usa no CSS
-        li.textContent = cat.nome;
+        li.className = 'sidebar-item';
+        
+        // Mudança aqui: Verifica se o ID está no array
+        const IsChecked = idsSelecionados.includes(cat.id) ? 'checked' : '';
+
+        li.innerHTML = `
+        <div class="sidebar-item-main">
+            <input type="checkbox" class="filtro-categoria-chk" data-id="${cat.id}" ${IsChecked}>
+            <span class="item-nome">${cat.nome}</span>
+        </div>
+    `;
         container.appendChild(li);
     });
 };
@@ -87,9 +98,9 @@ export function atualizarSelects(contas, categorias) {
     if (!selectConta || !selectDestino || !selectCategoria) return;
 
     // Limpar e preencher selects de conta (Origem e Destino)
-    const optionsContas = '<option value="">Selecione a Conta</option>' + 
+    const optionsContas = '<option value="">Selecione a Conta</option>' +
         contas.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    
+
     selectConta.innerHTML = optionsContas;
     selectDestino.innerHTML = optionsContas.replace("Selecione a Conta", "Conta de Destino");
 
@@ -110,14 +121,14 @@ export function tratarMudancaTipo(tipo) {
         // Mostra destino, esconde categoria
         groupDestino.style.display = 'block';
         groupCategoria.style.display = 'none';
-        
+
         // Remove a obrigatoriedade da categoria para não travar o envio
-        selectCategoria.required = false; 
+        selectCategoria.required = false;
     } else {
         // Esconde destino, mostra categoria
         groupDestino.style.display = 'none';
         groupCategoria.style.display = 'block';
-        
+
         // Volta a ser obrigatório para Receita e Despesa
         selectCategoria.required = true;
     }
@@ -181,7 +192,7 @@ export function atualizarMesExibido(mes, ano) {
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ];
-    
+
     const labelMes = document.getElementById('current-month-display');
     if (labelMes) {
         labelMes.textContent = `${nomesMeses[mes]} de ${ano}`;

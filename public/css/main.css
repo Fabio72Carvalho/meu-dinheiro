@@ -96,3 +96,24 @@ button:hover {
     pointer-events: none;
     opacity: 0.8;
 }
+
+/* Alinhamento dos itens da barra lateral com Checkbox */
+.sidebar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.sidebar-list {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espaço entre o checkbox e o nome */
+}
+
+.sidebar-list input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}

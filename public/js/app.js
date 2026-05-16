@@ -1,13 +1,15 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
-import { getRequiredElement, 
-    alternarTelas, 
-    renderizarContas, 
-    renderizarCategorias, 
-    mostrarTelaLogin, 
-    mostrarTelaApp, 
-    atualizarSelects, 
+import {
+    getRequiredElement,
+    alternarTelas,
+    renderizarContas,
+    renderizarCategorias,
+    mostrarTelaLogin,
+    mostrarTelaApp,
+    atualizarSelects,
     renderizarTransacoes,
-    atualizarMesExibido } from './ui.js';
+    atualizarMesExibido
+} from './ui.js';
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { escutarContas, escutarCategorias, escutarTransacoes, salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
@@ -31,6 +33,27 @@ let contasGlobais = [];
 let categoriasGlobais = [];
 let transacoesGlobais = [];
 
+let contasSelecionadasIds = [];     // Armazenará uma lista de IDs ex: ['id_itau', 'id_carteira']
+let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_lazer', 'id_saude']
+
+
+function aplicarFiltrosMemoria() {
+    let transacoesFiltradas = [...transacoesGlobais];
+
+    // Se houver pelo menos uma conta selecionada na lista
+    if (contasSelecionadasIds.length > 0) {
+        transacoesFiltradas = transacoesFiltradas.filter(t => contasSelecionadasIds.includes(t.contaId));
+    }
+
+    // Se houver pelo menos uma categoria selecionada na lista
+    if (categoriasSelecionadasIds.length > 0) {
+        transacoesFiltradas = transacoesFiltradas.filter(t => categoriasSelecionadasIds.includes(t.categoriaId));
+    }
+
+    // Renderiza o resultado final na tela
+    renderizarTransacoes(transacoesFiltradas);
+}
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // --- CASO: USUÁRIO LOGADO ---
@@ -41,38 +64,40 @@ onAuthStateChanged(auth, (user) => {
         // Guardamos o retorno nas variáveis 'unsubscribe' para poder desligar depois
         unsubscribeContas = escutarContas(user.uid, (contas) => {
             contasGlobais = contas;
-            renderizarContas(contas);
+            renderizarContas(contas, contasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
         unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
             categoriasGlobais = categorias;
-            renderizarCategorias(categorias);
+            renderizarCategorias(categorias, categoriasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
-        carregarTransacoesDoMes(user.uid);        
+        carregarTransacoesDoMes(user.uid);
 
     } else {
         // --- CASO: USUÁRIO DESLOGADO (O "ESTRANHO" ELSE) ---
         console.log("Nenhum usuário logado.");
 
-        // 1. IMPORTANTÍSSIMO: Parar de ouvir o banco de dados
+        // IMPORTANTÍSSIMO: Parar de ouvir o banco de dados
         if (unsubscribeContas) unsubscribeContas();
         if (unsubscribeCategorias) unsubscribeCategorias();
         if (unsubscribeTransacoes) unsubscribeTransacoes();
 
-        // 2. Limpar os dados globais para não sobrar rastro do usuário anterior
+        // Limpar os dados globais para não sobrar rastro do usuário anterior
         contasGlobais = [];
         categoriasGlobais = [];
         transacoesGlobais = [];
+        contasSelecionadasIds = [];
+        categoriasSelecionadasIds = [];
 
-        // 3. Limpar a UI (renderizações vazias)
+        // Limpar a UI (renderizações vazias)
         renderizarContas([]);
         renderizarCategorias([]);
         renderizarTransacoes([]);
 
-        // 3. Voltar para a tela de login
+        // Voltar para a tela de login
         mostrarTelaLogin();
     }
 });
@@ -324,7 +349,8 @@ function carregarTransacoesDoMes(userId) {
     if (unsubscribeTransacoes) unsubscribeTransacoes();
 
     unsubscribeTransacoes = escutarTransacoesPorMes(userId, mes, ano, (transacoes) => {
-        renderizarTransacoes(transacoes);
+        transacoesGlobais = transacoes; // <--- SALVAR EM MEMÓRIA!
+        aplicarFiltrosMemoria();        // <--- APLICAR OS FILTROS SELECIONADOS
     });
 }
 
@@ -337,4 +363,46 @@ document.getElementById('btn-prev-month').addEventListener('click', () => {
 document.getElementById('btn-next-month').addEventListener('click', () => {
     dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() + 1);
     carregarTransacoesDoMes(auth.currentUser.uid);
+});
+
+// --- LOGICA DE ATIVAÇÃO DOS FILTROS DA SIDEBAR ---
+
+// Ouvinte para a lista de Contas (Múltipla Escolha)
+document.getElementById('lista-contas')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('filtro-conta-chk')) {
+        const chk = e.target;
+        const idConta = chk.dataset.id;
+        
+        if (chk.checked) {
+            // Se foi marcado, adiciona na lista se já não estiver lá
+            if (!contasSelecionadasIds.includes(idConta)) {
+                contasSelecionadasIds.push(idConta);
+            }
+        } else {
+            // Se foi desmarcado, remove da lista
+            contasSelecionadasIds = contasSelecionadasIds.filter(id => id !== idConta);
+        }
+        
+        aplicarFiltrosMemoria();
+    }
+});
+
+// Ouvinte para a lista de Categorias (Múltipla Escolha)
+document.getElementById('lista-categorias')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('filtro-categoria-chk')) {
+        const chk = e.target;
+        const idCategoria = chk.dataset.id;
+        
+        if (chk.checked) {
+            // Se foi marcado, adiciona na lista
+            if (!categoriasSelecionadasIds.includes(idCategoria)) {
+                categoriasSelecionadasIds.push(idCategoria);
+            }
+        } else {
+            // Se foi desmarcado, remove da lista
+            categoriasSelecionadasIds = categoriasSelecionadasIds.filter(id => id !== idCategoria);
+        }
+        
+        aplicarFiltrosMemoria();
+    }
 });
