@@ -109,14 +109,16 @@
             </aside>
 
             <main class="transactions-area">
+
                 <div class="transactions-header">
-                    <div class="filters">
+                    <!-- REVIEW: Retirar esse botão e o CSS -->
+                    <!-- <div class="filters">
                         <button class="filter-btn">Todas as Contas ▼</button>
-                    </div>
+                    </div> -->
                     <button id="btn-nova-transacao" class="btn-primary">+ Nova Transação</button>
                 </div>
 
-                <div id="lista-transacoes">
+                <!-- <div id="lista-transacoes">
                     <div class="daily-group" style="display: none;">
                         <div class="daily-header">
                             <span class="daily-date">15 de Maio</span>
@@ -127,7 +129,33 @@
                     <div class="empty-state">
                         <p>Nenhuma transação neste mês.</p>
                     </div>
+                </div> -->
+
+                <div id="resumo-periodo-container" class="resumes-grid">
+                    <div class="card-resumo" id="card-saldo-anterior">
+                        <span class="card-titulo">Saldo Anterior</span>
+                        <span class="card-valor" id="valor-saldo-anterior">R$ 0,00</span>
+                    </div>
+                    <div class="card-resumo" id="card-total-periodo">
+                        <span class="card-titulo" id="titulo-total-periodo">Fluxo do Mês</span>
+                        <span class="card-valor" id="valor-total-periodo">R$ 0,00</span>
+                    </div>
                 </div>
+
+                <div class="transacoes-container">
+                    <div class="transacao-header">
+                        <span>Data</span>
+                        <span>Descrição</span>
+                        <span>Categoria</span>
+                        <span>Conta</span>
+                        <span>Valor</span>
+                        <span class="coluna-saldo-diario">Saldo</span>
+                    </div>
+
+                    <div id="lista-transacoes">
+                    </div>
+                </div>
+
             </main>
         </div>
     </section>

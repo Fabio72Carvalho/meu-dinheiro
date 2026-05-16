@@ -44,7 +44,7 @@ export const renderizarContas = (contas, idsSelecionados = []) => {
     contas.forEach(conta => {
         const div = document.createElement('div');
         div.className = 'side-bar-item';
-        
+
         // Mudança aqui: Verifica se o ID atual está dentro do array idsSelecionados
         const IsChecked = idsSelecionados.includes(conta.id) ? 'checked' : '';
 
@@ -75,7 +75,7 @@ export const renderizarCategorias = (categorias, idsSelecionados = []) => {
     categorias.forEach(cat => {
         const li = document.createElement('li');
         li.className = 'sidebar-item';
-        
+
         // Mudança aqui: Verifica se o ID está no array
         const IsChecked = idsSelecionados.includes(cat.id) ? 'checked' : '';
 
@@ -171,18 +171,23 @@ export function renderizarTransacoes(transacoes) {
     }
 
     transacoes.forEach(t => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'transacao-item';
+        const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
         const data = t.data.toDate().toLocaleDateString('pt-BR'); // Formata a data para o formato brasileiro
         // Formatar valor e cor
         const valorFormatado = t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${data}</td>
-            <td>${t.descricao}</td>
-            <td>${t.contaNome || 'Conta'}</td>
-            <td class="${classeCor}">${valorFormatado}</td>
-        `;
-        listaCorpo.appendChild(tr);
+        itemDiv.innerHTML = `
+        <span>${data}</span>
+        <span>${t.descricao}</span>
+        <span>${t.categoriaNome || 'Sem Categoria'}</span>
+        <span>${t.contaNome || 'Sem Conta'}</span>
+        <span class="${classeCor}">R$ ${valorFormatado}</span>
+        <span class="coluna-saldo-diario" style="color: var(--text-secondary); font-weight: 500;">
+            R$ 0,00
+        </span>
+    `;
+        listaCorpo.appendChild(itemDiv);
     });
 }
 
