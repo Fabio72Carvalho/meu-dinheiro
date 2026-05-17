@@ -98,18 +98,6 @@
     color: #555;
 }
 
-/* Barra Lateral (Contas e Categorias) */
-.sidebar {
-    width: 260px;               /* Define uma largura fixa ideal para a listagem de contas e categorias */
-    flex-shrink: 0;             /* IMPEDE que a área de transações esmague ou aperte a sua barra lateral */
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.sidebar-section {
-    margin-bottom: 30px;
-}
-
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -134,10 +122,25 @@
     color: var(--primary-color);
 }
 
+/* Barra Lateral (Contas e Categorias) */
+.sidebar {
+    width: 260px;               /* Define uma largura fixa ideal para a listagem de contas e categorias */
+    flex-shrink: 0;             /* IMPEDE que a área de transações esmague ou aperte a sua barra lateral */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sidebar-section {
+    margin-bottom: 30px;
+}
+
 .sidebar-list {
+    display: flex;
     list-style: none;
     padding: 0;
     margin: 0;
+    flex-direction: column;
+    width: 100%;                /* Garante que a lista ocupe toda a largura interna */
 }
 
 .sidebar-list li {
@@ -145,7 +148,26 @@
     color: #444;
     font-size: 0.95rem;
     display: flex;
+    flex-direction: row;           /* CORRIGIDO: De column para row (lado a lado) */
+    justify-content: space-between;/* CORRIGIDO: Empurra o nome para a esquerda e o saldo para a direita */
+    align-items: center;           /* CORRIGIDO: Alinha verticalmente o texto no centro da linha */
+    width: 100%;                   /* Garante o espaçamento total da barra */
+}
+
+.sidebar-item {
+    display: flex;
     justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;                /* CORRIGIDO: Mudado de 4px para 0 para alinhar perfeitamente com o título */
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    width: 100%;                   /* Garante que o item use todo o espaço do li */
+}
+
+.sidebar-list input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;             /* Opcional: dá um pequeno espaço caso use o checkbox colado ao nome */
 }
 
 .empty-text {
@@ -261,31 +283,6 @@
     font-weight: bold;
 }
 
-/* Lista de Transações Diárias */
-.daily-group {
-    background: var(--bg-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.daily-header {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.empty-state {
-    text-align: center;
-    color: #888;
-    margin-top: 50px;
-}
-
 /* Agrupa a imagem e o título da aplicação */
 .brand-container {
     display: flex;
@@ -375,4 +372,11 @@
 .texto-transferencia {
     color: #007bff;
     font-weight: bold;
+}
+
+#lista-contas, 
+#lista-categorias {
+    display: flex;
+    flex-direction: column; /* Faz os itens ficarem um abaixo do outro */
+    gap: 8px;               /* Garante um espaçamento saudável entre eles */
 }
