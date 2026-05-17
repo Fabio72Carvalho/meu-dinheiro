@@ -30,32 +30,32 @@ export const alternarTelas = (usuarioLogado) => {
     }
 };
 
-// Função para renderizar as contas na interface
-export const renderizarContas = (contas, idsSelecionados = []) => {
+// Renderiza as contas na barra lateral, mostrando o saldo real de hoje (considerando o saldo inicial + todas as transações do ano até hoje)
+export const renderizarContas = (contas, saldosAnuais = [], idsSelecionados = []) => {
     const container = document.getElementById('lista-contas');
     if (!container) return;
     container.innerHTML = '';
 
-    if (contas.length === 0) {
-        container.innerHTML = '<p class="empty-msg">Nenhuma conta cadastrada.</p>';
-        return;
-    }
+    const anoAtual = new Date().getFullYear();
 
     contas.forEach(conta => {
-        const div = document.createElement('div');
-        div.className = 'side-bar-item';
+        // Encontra o balanço do ano corrente para extrair o saldo cronológico de hoje
+        const registroSaldo = saldosAnuais.find(s => s.contaId === conta.id && s.ano === anoAtual);
+        const saldoRealHoje = registroSaldo ? Number(registroSaldo.saldoAtualHoje) : (Number(conta.saldoInicial) || 0);
 
-        // Mudança aqui: Verifica se o ID atual está dentro do array idsSelecionados
-        const IsChecked = idsSelecionados.includes(conta.id) ? 'checked' : '';
+        const li = document.createElement('li');
+        li.className = 'sidebar-item';
+        const isChecked = idsSelecionados.includes(conta.id) ? 'checked' : '';
+        const classeCor = saldoRealHoje >= 0 ? 'texto-verde' : 'texto-vermelho';
 
-        div.innerHTML = `
-            <div class="conta-info">
-                <input type="checkbox" class="filtro-conta-chk" data-id="${conta.id}" ${IsChecked}>    
-                <span class="conta-nome">${conta.nome}</span>
+        li.innerHTML = `
+            <div class="sidebar-item-content">
+                <input type="checkbox" id="chk-conta-${conta.id}" data-id="${conta.id}" class="filtro-conta-chk" ${isChecked}>
+                <label for="chk-conta-${conta.id}" class="conta-nome">${conta.nome}</label>
             </div>
-            <span class="conta-saldo">R$ ${conta.saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <span class="conta-saldo ${classeCor}">${formatarMoeda(saldoRealHoje)}</span>
         `;
-        container.appendChild(div);
+        container.appendChild(li);
     });
 };
 
@@ -158,86 +158,6 @@ export function mostrarTelaLogin() {
     if (viewLogin) viewLogin.style.display = 'flex'; // Usamos flex porque o container de login geralmente é centralizado
 }
 
-/**
- * Renderiza as transações na tela calculando o saldo diário acumulado.
- * @param {Array} transacoes - Lista de transações vindas do Firestore (Ordenadas por data ASC)
- * @param {number} saldoAnterior - Saldo total acumulado de todos os meses passados
- */
-export function renderizarTransacoes(transacoes, saldoDeReferencia = 0) {
-    const listaCorpo = document.getElementById('lista-transacoes');
-    if (!listaCorpo) return;
-
-    const cardSaldoAnterior = document.getElementById('valor-saldo-anterior');
-    const cardFluxoMes = document.getElementById('valor-total-periodo');
-
-    listaCorpo.innerHTML = ''; // Limpa a lista antes de renderizar
-
-    const formatarMoeda = (valor) => {
-        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
-
-    if (transacoes.length === 0) {
-        listaCorpo.innerHTML = '<tr><td colspan="5" style="text-align:center">Nenhuma transação encontrada.</td></tr>';
-        cardSaldoAnterior.textContent = formatarMoeda(saldoDeReferencia);
-        cardFluxoMes.textContent = formatarMoeda(0);
-        return;
-    }
-
-    // === PASSO 1: CALCULAR O FLUXO DO PERÍODO FILTRADO ===
-    let fluxoDoMes = 0;
-    transacoes.forEach(t => {
-        const valor = parseFloat(t.valor) || 0;
-        if (t.tipo === 'receita') {
-            fluxoDoMes += valor;
-        } else if (t.tipo === 'despesa') {
-            fluxoDoMes -= valor;
-        }
-        // Transferências entre contas mantém o fluxo global neutro se nenhuma conta estiver filtrada,
-        // mas se houver uma conta filtrada, você precisará computar a entrada ou saída específica dela aqui.
-    });
-
-    // === PASSO 2: ENGENHARIA REVERSA DO SALDO ANTERIOR ===
-    // O Saldo Anterior é matematicamente a diferença entre onde a conta está hoje e o quanto ela movimentou
-    const saldoAnteriorCalculado = saldoDeReferencia - fluxoDoMes;
-    let saldoCorrido = saldoAnteriorCalculado;
-
-    // === PASSO 3: RENDERIZAR AS TRANSAÇÕES E O SALDO CORRIDO ===
-    transacoes.forEach(t => {
-        const valor = parseFloat(t.valor) || 0;
-        
-        if (t.tipo === 'receita') {
-            saldoCorrido += valor;
-        } else if (t.tipo === 'despesa') {
-            saldoCorrido -= valor;
-        }
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'transacao-item';
-
-        const data = t.data.toDate().toLocaleDateString('pt-BR'); // Formata a data para o formato brasileiro
-        const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
-
-        itemDiv.innerHTML = `
-        <span>${data}</span>
-        <span title="${t.descricao}">${t.descricao}</span>
-        <span>${t.categoriaNome || 'Sem Categoria'}</span>
-        <span>${t.contaNome || 'Sem Conta'}</span>
-        <span class="${classeCor}">${formatarMoeda(valor)}</span>
-        <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
-    `;
-        listaCorpo.appendChild(itemDiv);
-        //listaCorpo.insertBefore(itemDiv, listaCorpo.firstChild); <<<-- Se quiser em ordem decrescente, descomente esta linha e comente a de cima
-    });
-    // Atualiza os Cards de Resumo do topo com os valores finais calculados
-    cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
-    cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
-
-    // Altera a cor do card de fluxo conforme o resultado do mês
-    cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
-
-}
-
-// js/ui.js
 export function atualizarMesExibido(mes, ano) {
     const nomesMeses = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -249,3 +169,111 @@ export function atualizarMesExibido(mes, ano) {
         labelMes.textContent = `${nomesMeses[mes]} de ${ano}`;
     }
 }
+
+export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuais = [], mesSelecionado, anoSelecionado) {
+    const container = document.getElementById('lista-transacoes');
+    const cardSaldoAnterior = document.getElementById('resumo-saldo-anterior');
+    const cardFluxoMes = document.getElementById('resumo-fluxo-mes');
+
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // 🚨 SEGURANÇA MÁXIMA: Se as dependências não carregaram, exibe um feedback amigável e sai da função
+    if (!contas || contas.length === 0 || !categorias || categorias.length === 0) {
+        container.innerHTML = `<div class="transacao-item">Carregando dados complementares...</div>`;
+        return; 
+    }
+
+    if (transacoes.length === 0) {
+        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este mês.</div>`;
+        return;
+    }
+
+    // --- CÁLCULO INSTANTÂNEO DO SALDO ANTERIOR CONSOLIDADO ---
+    let saldoAnteriorCalculado = 0;
+    const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    
+    let anoBusca = anoSelecionado;
+    let mesAnteriorIndex = mesSelecionado - 1;
+    
+    if (mesSelecionado === 0) { // Se a tela está em Janeiro, busca o Dezembro do ano anterior
+        anoBusca = anoSelecionado - 1;
+        mesAnteriorIndex = 11;
+    }
+
+    contas.forEach(conta => {
+        const registro = saldosAnuais.find(s => s.contaId === conta.id && s.ano === anoBusca);
+        if (registro) {
+            const marcador = mesesMarcadores[mesAnteriorIndex];
+            saldoAnteriorCalculado += Number(registro[marcador]) || 0;
+        } else {
+            // Fallback: se não achar consolidações passadas, usa o saldo inicial se for o ano de criação
+            saldoAnteriorCalculado += Number(conta.saldoInicial) || 0;
+        }
+    });
+
+    let saldoCorrido = saldoAnteriorCalculado;
+    let fluxoDoMes = 0;
+
+    // Garante ordenação ascendente para montar o extrato diário corrido perfeitamente
+    const transacoesOrdenadas = [...transacoes].sort((a, b) => {
+        const dataA = a.data?.toDate ? a.data.toDate() : new Date(a.data);
+        const dataB = b.data?.toDate ? b.data.toDate() : new Date(b.data);
+        return dataA - dataB;
+    });
+
+    transacoesOrdenadas.forEach(t => {
+        const valor = Number(t.valor) || 0;
+        if (t.tipo === 'receita') {
+            saldoCorrido += valor;
+            fluxoDoMes += valor;
+        } else if (t.tipo === 'despesa') {
+            saldoCorrido -= valor;
+            fluxoDoMes -= valor;
+        }
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'transacao-item';
+        
+        const dataStr = t.data?.toDate ? t.data.toDate().toLocaleDateString('pt-BR') : new Date(t.data).toLocaleDateString('pt-BR');
+        const classeCor = t.tipo === 'receita' ? 'texto-receita' : 'texto-despesa';
+
+        itemDiv.innerHTML = `
+            <span>${dataStr}</span>
+            <span title="${t.descricao}">${t.descricao}</span>
+            <span>${t.categoriaNome || 'Sem Categoria'}</span>
+            <span>${t.contaNome || 'Sem Conta'}</span>
+            <span class="${classeCor}">${formatarMoeda(valor)}</span>
+            <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
+        `;
+        container.appendChild(itemDiv);
+    });
+
+    if (cardSaldoAnterior) cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
+    if (cardFluxoMes) {
+        cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
+        cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
+    }
+}
+
+/**
+ * Formata um valor numérico ou string para o padrão monetário brasileiro (R$).
+ * @param {number|string} valor - O valor numérico ou string numérica a ser formatada.
+ * @returns {string} O valor formatado no formato "R$ 1.250,50".
+ */
+const formatarMoeda = (valor) => {
+  // Converte para número caso venha como string de um input do DOM
+  const numero = typeof valor === "string" ? parseFloat(valor) : valor;
+
+  // Cláusula de salvaguarda para evitar "NaN" ou quebras visuais na UI
+  if (numero === undefined || numero === null || isNaN(numero)) {
+    return "R$ 0,00";
+  }
+
+  // Utiliza a API nativa de internacionalização do navegador
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format(numero);
+};

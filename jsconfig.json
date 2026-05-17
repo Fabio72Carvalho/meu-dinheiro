@@ -8,6 +8,8 @@
     "noImplicitAny": false,
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "paths": {
       "https://www.gstatic.com/firebasejs/10.8.0/*": [
         "./node_modules/firebase/*"
