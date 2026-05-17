@@ -163,7 +163,7 @@ export function mostrarTelaLogin() {
  * @param {Array} transacoes - Lista de transações vindas do Firestore (Ordenadas por data ASC)
  * @param {number} saldoAnterior - Saldo total acumulado de todos os meses passados
  */
-export function renderizarTransacoes(transacoes, saldoAnterior = 0) {
+export function renderizarTransacoes(transacoes, saldoDeReferencia = 0) {
     const listaCorpo = document.getElementById('lista-transacoes');
     if (!listaCorpo) return;
 
@@ -172,58 +172,66 @@ export function renderizarTransacoes(transacoes, saldoAnterior = 0) {
 
     listaCorpo.innerHTML = ''; // Limpa a lista antes de renderizar
 
-    // Inicializa os acumuladores
-    let saldoCorrido = saldoAnterior;
-    let fluxoDoMes = 0;
-
     const formatarMoeda = (valor) => {
         return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
     if (transacoes.length === 0) {
         listaCorpo.innerHTML = '<tr><td colspan="5" style="text-align:center">Nenhuma transação encontrada.</td></tr>';
-        cardSaldoAnterior.textContent = formatarMoeda(saldoAnterior);
+        cardSaldoAnterior.textContent = formatarMoeda(saldoDeReferencia);
         cardFluxoMes.textContent = formatarMoeda(0);
         return;
     }
 
+    // === PASSO 1: CALCULAR O FLUXO DO PERÍODO FILTRADO ===
+    let fluxoDoMes = 0;
     transacoes.forEach(t => {
         const valor = parseFloat(t.valor) || 0;
         if (t.tipo === 'receita') {
-            saldoCorrido += valor;
             fluxoDoMes += valor;
         } else if (t.tipo === 'despesa') {
-            saldoCorrido -= valor;
             fluxoDoMes -= valor;
-        } else if (t.tipo === 'transferencia') {
-            // Para transferências, o valor já deve estar refletido corretamente no saldoAnterior e fluxoDoMes, 
-            // então não fazemos ajustes aqui para evitar duplicidade.
+        }
+        // Transferências entre contas mantém o fluxo global neutro se nenhuma conta estiver filtrada,
+        // mas se houver uma conta filtrada, você precisará computar a entrada ou saída específica dela aqui.
+    });
+
+    // === PASSO 2: ENGENHARIA REVERSA DO SALDO ANTERIOR ===
+    // O Saldo Anterior é matematicamente a diferença entre onde a conta está hoje e o quanto ela movimentou
+    const saldoAnteriorCalculado = saldoDeReferencia - fluxoDoMes;
+    let saldoCorrido = saldoAnteriorCalculado;
+
+    // === PASSO 3: RENDERIZAR AS TRANSAÇÕES E O SALDO CORRIDO ===
+    transacoes.forEach(t => {
+        const valor = parseFloat(t.valor) || 0;
+        
+        if (t.tipo === 'receita') {
+            saldoCorrido += valor;
+        } else if (t.tipo === 'despesa') {
+            saldoCorrido -= valor;
         }
 
         const itemDiv = document.createElement('div');
         itemDiv.className = 'transacao-item';
 
         const data = t.data.toDate().toLocaleDateString('pt-BR'); // Formata a data para o formato brasileiro
-
         const classeCor = t.tipo === 'receita' ? 'texto-receita' : (t.tipo === 'despesa' ? 'texto-despesa' : 'texto-transferencia');
 
-        // <span title="${t.descricao}">${t.descricao.length > 30 ? t.descricao.substring(0, 27) + '...' : t.descricao}</span>
-        // <span class="coluna-saldo-diario" style="color: var(--text-secondary); font-weight: 500;">R$ 0,00</span>
         itemDiv.innerHTML = `
         <span>${data}</span>
         <span title="${t.descricao}">${t.descricao}</span>
         <span>${t.categoriaNome || 'Sem Categoria'}</span>
         <span>${t.contaNome || 'Sem Conta'}</span>
-        <span class="${classeCor}">R$ ${formatarMoeda(valor)}</span>
+        <span class="${classeCor}">${formatarMoeda(valor)}</span>
         <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
     `;
         listaCorpo.appendChild(itemDiv);
         //listaCorpo.insertBefore(itemDiv, listaCorpo.firstChild); <<<-- Se quiser em ordem decrescente, descomente esta linha e comente a de cima
     });
     // Atualiza os Cards de Resumo do topo com os valores finais calculados
-    cardSaldoAnterior.textContent = formatarMoeda(saldoAnterior);
+    cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
     cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
-    
+
     // Altera a cor do card de fluxo conforme o resultado do mês
     cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
 

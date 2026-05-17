@@ -38,20 +38,49 @@ let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_laz
 
 
 function aplicarFiltrosMemoria() {
+    // 1. Clona o array global de transações do mês para aplicar os filtros
     let transacoesFiltradas = [...transacoesGlobais];
 
-    // Se houver pelo menos uma conta selecionada na lista
+    // 2. Se houver pelo menos uma conta selecionada na sidebar, filtra
     if (contasSelecionadasIds.length > 0) {
         transacoesFiltradas = transacoesFiltradas.filter(t => contasSelecionadasIds.includes(t.contaId));
     }
 
-    // Se houver pelo menos uma categoria selecionada na lista
+    // 3. Se houver pelo menos uma categoria selecionada na sidebar, filtra
     if (categoriasSelecionadasIds.length > 0) {
         transacoesFiltradas = transacoesFiltradas.filter(t => categoriasSelecionadasIds.includes(t.categoriaId));
     }
 
-    // Renderiza o resultado final na tela
-    renderizarTransacoes(transacoesFiltradas);
+    // === 4. CÁLCULO CRÍTICO: DESCOBRIR O SALDO DE REFERÊNCIA VIVO ===
+    let saldoDeReferencia = 0;
+
+    // Descobre se o mês que o usuário está olhando é o mês atual (mês e ano idênticos a "hoje")
+    const hoje = new Date();
+    const éMesAtual = dataFiltroAtual.getMonth() === hoje.getMonth() && 
+                      dataFiltroAtual.getFullYear() === hoje.getFullYear();
+
+    if (éMesAtual) {
+        // MÊS ATUAL: O saldo vivo vem em tempo real do seu array 'contasGlobais'
+        if (contasSelecionadasIds.length > 0) {
+            // Se tem contas filtradas, soma o saldoAtual APENAS das contas selecionadas
+            saldoDeReferencia = contasSelecionadasIds.reduce((acumulador, id) => {
+                const conta = contasGlobais.find(c => c.id === id); 
+                return acumulador + (conta ? parseFloat(conta.saldoAtual) || 0 : 0);
+            }, 0);
+        } else {
+            // Se NÃO tem conta filtrada (Visão Geral), soma o saldoAtual de TODAS as contas
+            saldoDeReferencia = contasGlobais.reduce((acumulador, conta) => {
+                return acumulador + (parseFloat(conta.saldoAtual) || 0);
+            }, 0);
+        }
+    } else {
+        // MÊS PASSADO: O saldoDeReferencia será o snapshot histórico resgatado do banco.
+        // Enquanto não implementamos a coleção 'saldosMensais', deixamos herdando 0 ou sua variável global
+        saldoDeReferencia = typeof saldoHistoricoGeral !== 'undefined' ? saldoHistoricoGeral : 0; 
+    }
+
+    // 5. Renderiza o resultado final na tela passando a lista filtrada e o saldo correto
+    renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
 }
 
 onAuthStateChanged(auth, (user) => {
