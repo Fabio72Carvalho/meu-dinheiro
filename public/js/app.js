@@ -321,6 +321,8 @@ formTransacao.addEventListener('submit', async (e) => {
         categoriaNome: comboCategoria.options[comboCategoria.selectedIndex].text
     };
 
+    console.log("dataObjeto:", dados.data);
+
     try {
         // userId deve vir da sua lógica de autenticação (ex: auth.currentUser.uid)
         const userId = auth.currentUser.uid;

@@ -217,8 +217,8 @@ export function renderizarTransacoes(transacoes, saldoAnterior = 0) {
         <span class="${classeCor}">R$ ${formatarMoeda(valor)}</span>
         <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
     `;
-        // listaCorpo.appendChild(itemDiv);
-        listaCorpo.insertBefore(itemDiv, listaCorpo.firstChild);
+        listaCorpo.appendChild(itemDiv);
+        //listaCorpo.insertBefore(itemDiv, listaCorpo.firstChild); <<<-- Se quiser em ordem decrescente, descomente esta linha e comente a de cima
     });
     // Atualiza os Cards de Resumo do topo com os valores finais calculados
     cardSaldoAnterior.textContent = formatarMoeda(saldoAnterior);
