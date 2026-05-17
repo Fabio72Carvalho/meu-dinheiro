@@ -112,6 +112,8 @@ onAuthStateChanged(auth, (user) => {
         unsubscribeSaldosAnuais = escutarSaldosAnuais(user.uid, (saldos) => {
             saldosAnuaisGlobais = saldos;
 
+            console.log("Saldos anuais atualizados:", saldosAnuaisGlobais);
+
             // Sempre que o saldo mudar (ex: transação inserida), forçamos o re-render da barra lateral e extrato
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
             renderizarTransacoes(
@@ -388,8 +390,6 @@ formTransacao.addEventListener('submit', async (e) => {
         contaNome: comboConta.options[comboConta.selectedIndex].text,
         categoriaNome: comboCategoria.options[comboCategoria.selectedIndex].text
     };
-
-    console.log("contaId--------------->", dados.contaId);
 
     try {
         // userId deve vir da sua lógica de autenticação (ex: auth.currentUser.uid)

@@ -172,23 +172,12 @@ export function atualizarMesExibido(mes, ano) {
 
 export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuais = [], mesSelecionado, anoSelecionado) {
     const container = document.getElementById('lista-transacoes');
-    const cardSaldoAnterior = document.getElementById('resumo-saldo-anterior');
-    const cardFluxoMes = document.getElementById('resumo-fluxo-mes');
+    const cardSaldoAnterior = document.getElementById('valor-saldo-anterior');
+    const cardFluxoMes = document.getElementById('valor-total-periodo');
 
-    if (!container) return;
+    if (!container || !transacoes || !contas || !categorias || !saldosAnuais) return;
 
     container.innerHTML = '';
-
-    // 🚨 SEGURANÇA MÁXIMA: Se as dependências não carregaram, exibe um feedback amigável e sai da função
-    if (!contas || contas.length === 0 || !categorias || categorias.length === 0) {
-        container.innerHTML = `<div class="transacao-item">Carregando dados complementares...</div>`;
-        return; 
-    }
-
-    if (transacoes.length === 0) {
-        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este mês.</div>`;
-        return;
-    }
 
     // --- CÁLCULO INSTANTÂNEO DO SALDO ANTERIOR CONSOLIDADO ---
     let saldoAnteriorCalculado = 0;
@@ -212,6 +201,19 @@ export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuai
             saldoAnteriorCalculado += Number(conta.saldoInicial) || 0;
         }
     });
+
+    if (cardSaldoAnterior) cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
+
+    // 🚨 SEGURANÇA MÁXIMA: Se as dependências não carregaram, exibe um feedback amigável e sai da função
+    if (!contas || contas.length === 0 || !categorias || categorias.length === 0) {
+        container.innerHTML = `<div class="transacao-item">Carregando dados complementares...</div>`;
+        return; 
+    }
+
+    if (transacoes.length === 0) {
+        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este mês.</div>`;
+        return;
+    }
 
     let saldoCorrido = saldoAnteriorCalculado;
     let fluxoDoMes = 0;
@@ -250,7 +252,6 @@ export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuai
         container.appendChild(itemDiv);
     });
 
-    if (cardSaldoAnterior) cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
     if (cardFluxoMes) {
         cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
         cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
