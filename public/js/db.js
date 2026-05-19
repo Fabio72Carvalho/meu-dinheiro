@@ -151,26 +151,6 @@ export async function salvarTransacao(userId, transacao) {
     }
 }
 
-// escutarTransacoes.js
-// REVIEW ver se ainda será necessária essa função:
-export function escutarTransacoes(userId, callback) {
-    const q = query(
-        collection(db, "transacoes"),
-        where("userId", "==", userId),
-        orderBy("data", "asc") // Ordena por data, do mais antigo para o mais recente
-    );
-
-    return onSnapshot(q, (snapshot) => {
-        const transacoes = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        callback(transacoes);
-    });
-}
-
-// js/db.js
-
 export function escutarTransacoesPorMes(userId, mes, ano, callback) {
     // 1. Calcular o primeiro e o último segundo do mês selecionado
     const dataInicio = new Date(ano, mes, 1, 0, 0, 0); // Meses em JavaScript são 0-indexados

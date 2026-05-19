@@ -11,25 +11,6 @@ export const getRequiredElement = (id) => {
     return el;
 };
 
-/**
- * Alterna a visibilidade entre a tela de login e a tela principal do App
- * @param {boolean} usuarioLogado 
- */
-export const alternarTelas = (usuarioLogado) => {
-    const viewLogin = document.getElementById('view-login');
-    const viewMain = document.getElementById('view-main');
-
-    if (usuarioLogado) {
-        // Usuário entrou: esconde login, mostra app
-        if (viewLogin) viewLogin.style.display = 'none';
-        if (viewMain) viewMain.style.display = 'flex'; // Usamos flex para manter o layout do CSS
-    } else {
-        // Usuário saiu: mostra login, esconde app
-        if (viewLogin) viewLogin.style.display = 'block';
-        if (viewMain) viewMain.style.display = 'none';
-    }
-};
-
 // Renderiza as contas na barra lateral, mostrando o saldo real de hoje (considerando o saldo inicial + todas as transações do ano até hoje)
 export const renderizarContas = (contas, saldosAnuais = [], idsSelecionados = []) => {
     const container = document.getElementById('lista-contas');
@@ -134,29 +115,33 @@ export function tratarMudancaTipo(tipo) {
     }
 }
 
-// Exibe a tela principal do App e esconde o Login
-export function mostrarTelaApp(user) {
+/**
+ * Gerencia a interface com base no estado de autenticação do usuário.
+ * Unifica a troca de telas e a atualização do nome em um só lugar.
+ * @param {Object|null} user - O objeto do usuário logado (ou null se deslogado).
+ */
+export const gerenciarEstadoAuth = (user) => {
     const viewLogin = document.getElementById('view-login');
     const viewMain = document.getElementById('view-main');
     const userDisplay = document.getElementById('user-display-name');
 
-    if (viewLogin) viewLogin.style.display = 'none';
-    if (viewMain) viewMain.style.display = 'block'; // Ou 'flex', dependendo do seu layout
-
-    // Atualiza o nome do usuário na barra superior (Diretriz de UI)
-    if (userDisplay) {
-        userDisplay.textContent = user.displayName || user.email;
+    if (user) {
+        // Usuário Logado: Esconde Login, Mostra App
+        if (viewLogin) viewLogin.style.display = 'none';
+        if (viewMain) viewMain.style.display = 'flex'; // Mantém o layout principal
+        
+        // Atualiza o nome na barra superior
+        if (userDisplay) {
+            userDisplay.textContent = user.displayName || user.email;
+        }
+    } else {
+        // Usuário Deslogado: Esconde App, Mostra Login
+        if (viewMain) viewMain.style.display = 'none';
+        
+        // 🚨 O SEGREDO ESTÁ AQUI: 'flex' no lugar de 'block' resolve o encolhimento!
+        if (viewLogin) viewLogin.style.display = 'flex'; 
     }
-}
-
-// Exibe a tela de Login e esconde o App (usado no Logout ou falha de auth)
-export function mostrarTelaLogin() {
-    const viewLogin = document.getElementById('view-login');
-    const viewMain = document.getElementById('view-main');
-
-    if (viewMain) viewMain.style.display = 'none';
-    if (viewLogin) viewLogin.style.display = 'flex'; // Usamos flex porque o container de login geralmente é centralizado
-}
+};
 
 export function atualizarMesExibido(mes, ano) {
     const nomesMeses = [

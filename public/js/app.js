@@ -1,18 +1,15 @@
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
 import {
     getRequiredElement,
-    alternarTelas,
     renderizarContas,
     renderizarCategorias,
-    mostrarTelaLogin,
-    mostrarTelaApp,
     atualizarSelects,
     renderizarTransacoes,
-    atualizarMesExibido
+    atualizarMesExibido,
+    gerenciarEstadoAuth
 } from './ui.js';
 import { auth } from './firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { escutarContas, escutarCategorias, escutarTransacoes, escutarSaldosAnuais,salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
+import { escutarContas, escutarCategorias, escutarSaldosAnuais,salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
@@ -38,22 +35,6 @@ let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_laz
 
 let saldosAnuaisGlobais = [];
 let unsubscribeSaldosAnuais = null;
-
-// Crie uma função centralizadora para atualizar a UI com os novos estados globais:
-function atualizarRendersInterface() {
-    renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
-    renderizarCategorias(categoriasGlobais, categoriasSelecionadasIds);
-
-    // Passa os saldos anuais e o mês/ano selecionados na navegação do app
-    renderizarTransacoes(
-        transacoesGlobais,
-        contasGlobais,
-        categoriasGlobais,
-        saldosAnuaisGlobais,
-        dataFiltroAtual.getMonth(),
-        dataFiltroAtual.getFullYear()
-    );
-}
 
 function aplicarFiltrosMemoria() {
     // 1. Clona o array global de transações do mês para aplicar os filtros
@@ -101,60 +82,53 @@ function aplicarFiltrosMemoria() {
     renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
 }
 
-onAuthStateChanged(auth, (user) => {
+observarAutenticacao((user) => {
     if (user) {
         // --- CASO: USUÁRIO LOGADO ---
         console.log("Usuário logado:", user.uid);
-        mostrarTelaApp(user); // Troca a UI para a tela principal
+        
+        // 1. Tratamento de Interface (O que estava no wrapper antigo)
+        const nomeExibicao = getRequiredElement('user-display-name');
+        nomeExibicao.innerText = user.displayName || user.email;
+        gerenciarEstadoAuth(user);
 
-        // 1. Iniciamos os ouvintes em tempo real
-        // OUvinte 0: Escuta os saldos anuais consolidados da conta (Balanço Estático)
+        // 2. Ouvintes em tempo real do Firestore (O montão de código)
         unsubscribeSaldosAnuais = escutarSaldosAnuais(user.uid, (saldos) => {
             saldosAnuaisGlobais = saldos;
-
             console.log("Saldos anuais atualizados:", saldosAnuaisGlobais);
-
-            // Sempre que o saldo mudar (ex: transação inserida), forçamos o re-render da barra lateral e extrato
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
-            renderizarTransacoes(
-                transacoesGlobais,
-                contasGlobais,
-                categoriasGlobais,
-                saldosAnuaisGlobais,
-                dataFiltroAtual.getMonth(),
-                dataFiltroAtual.getFullYear()
-            );
+            renderizarTransacoes(transacoesGlobais, contasGlobais, categoriasGlobais, saldosAnuaisGlobais, dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear());
         });
 
-        // Ouvinte 1: Escuta as Contas do Usuário
         unsubscribeContas = escutarContas(user.uid, (contas) => {
             contasGlobais = contas;
-            // Passamos a lista de saldos anuais carregada para computar o saldo de hoje cronologicamente
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
-        // Ouvinte 2: Escuta as Categorias do Usuário
         unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
             categoriasGlobais = categorias;
             renderizarCategorias(categorias, categoriasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
         });
 
-        // 2. Busca inicial das transações do mês vigente
+        // 3. Busca inicial das transações do mês vigente
         carregarTransacoesDoMes(user.uid);
 
     } else {
         // --- CASO: USUÁRIO DESLOGADO (LOGOUT) ---
         console.log("Nenhum usuário logado.");
 
-        // IMPORTANTÍSSIMO: Parar de ouvir todas as coleções do banco de dados (Evita vazamento de memória)
+        // 1. Tratamento de Interface Unificado (Garante o CSS sem encolher)
+        gerenciarEstadoAuth(user);
+
+        // 2. Parar de ouvir todas as coleções do banco de dados
         if (unsubscribeSaldosAnuais) unsubscribeSaldosAnuais();
         if (unsubscribeContas) unsubscribeContas();
         if (unsubscribeCategorias) unsubscribeCategorias();
         if (unsubscribeTransacoes) unsubscribeTransacoes();
 
-        // Limpar completamente os estados globais na memória para o próximo login
+        // 3. Limpar completamente os estados globais na memória
         saldosAnuaisGlobais = [];
         contasGlobais = [];
         categoriasGlobais = [];
@@ -162,13 +136,10 @@ onAuthStateChanged(auth, (user) => {
         contasSelecionadasIds = [];
         categoriasSelecionadasIds = [];
 
-        // Limpar a UI desenhando estruturas vazias
+        // 4. Limpar a UI desenhando estruturas vazias
         renderizarContas([], []);
         renderizarCategorias([]);
         renderizarTransacoes([], [], [], [], dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear());
-
-        // Voltar o usuário de forma segura para a tela de login
-        mostrarTelaLogin();
     }
 });
 
@@ -244,20 +215,6 @@ function toggleForm() {
         /** @type {HTMLInputElement} */ (getRequiredElement('nome')).required = false; // Remove obrigatoriedade
     }
 }
-
-// --- MONITOR DE AUTENTICAÇÃO ---
-/**
- * @param {any} user
- */
-observarAutenticacao((user) => {
-    if (user) {
-        const nomeExibicao = getRequiredElement('user-display-name');
-        nomeExibicao.innerText = user.displayName || user.email;
-        alternarTelas(true);
-    } else {
-        alternarTelas(false);
-    }
-});
 
 // --- EVENTO DE SAÍDA ---
 const btnSair = getRequiredElement('btn-sair');
@@ -358,7 +315,6 @@ window.addEventListener('click', (event) => {
 
 // Listener do tipo de transação para mostrar/ocultar campos
 const selectTipo = document.getElementById('trans-tipo');
-
 selectTipo.addEventListener('change', (e) => {
     import('./ui.js').then(ui => ui.tratarMudancaTipo(e.target.value));
 });
@@ -411,16 +367,12 @@ formTransacao.addEventListener('submit', async (e) => {
 function carregarTransacoesDoMes(userId) {
     const mes = dataFiltroAtual.getMonth();
     const ano = dataFiltroAtual.getFullYear();
-
     // Atualiza o texto no topo da tela (ex: "Maio de 2024")
     atualizarMesExibido(mes, ano);
-
     // Se já houver uma escuta ativa, cancela para não duplicar
     if (unsubscribeTransacoes) unsubscribeTransacoes();
-
     unsubscribeTransacoes = escutarTransacoesPorMes(userId, dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear(), (transacoes) => {
         transacoesGlobais = transacoes;
-
         renderizarTransacoes(
             transacoesGlobais,
             contasGlobais,
@@ -437,7 +389,6 @@ document.getElementById('btn-prev-month').addEventListener('click', () => {
     dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() - 1);
     carregarTransacoesDoMes(auth.currentUser.uid);
 });
-
 document.getElementById('btn-next-month').addEventListener('click', () => {
     dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() + 1);
     carregarTransacoesDoMes(auth.currentUser.uid);
@@ -450,7 +401,6 @@ document.getElementById('lista-contas')?.addEventListener('change', (e) => {
     if (e.target.classList.contains('filtro-conta-chk')) {
         const chk = e.target;
         const idConta = chk.dataset.id;
-
         if (chk.checked) {
             // Se foi marcado, adiciona na lista se já não estiver lá
             if (!contasSelecionadasIds.includes(idConta)) {
@@ -460,7 +410,6 @@ document.getElementById('lista-contas')?.addEventListener('change', (e) => {
             // Se foi desmarcado, remove da lista
             contasSelecionadasIds = contasSelecionadasIds.filter(id => id !== idConta);
         }
-
         aplicarFiltrosMemoria();
     }
 });
@@ -484,3 +433,19 @@ document.getElementById('lista-categorias')?.addEventListener('change', (e) => {
         aplicarFiltrosMemoria();
     }
 });
+
+// REVIEW ver se isto vai ser utilizado
+// Função centralizadora para atualizar a UI com os novos estados globais:
+// function atualizarRendersInterface() {
+//     renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
+//     renderizarCategorias(categoriasGlobais, categoriasSelecionadasIds);
+//     // Passa os saldos anuais e o mês/ano selecionados na navegação do app
+//     renderizarTransacoes(
+//         transacoesGlobais,
+//         contasGlobais,
+//         categoriasGlobais,
+//         saldosAnuaisGlobais,
+//         dataFiltroAtual.getMonth(),
+//         dataFiltroAtual.getFullYear()
+//     );
+// }

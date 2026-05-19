@@ -60,3 +60,12 @@
 form[data-mode="signup"] #main-btn {
     background-color: #3498db;
 }
+
+#view-login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--bg-color);
+}
