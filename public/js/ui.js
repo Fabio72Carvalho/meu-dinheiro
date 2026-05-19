@@ -124,21 +124,14 @@ export const gerenciarEstadoAuth = (user) => {
     const viewLogin = document.getElementById('view-login');
     const viewMain = document.getElementById('view-main');
     const userDisplay = document.getElementById('user-display-name');
-
     if (user) {
-        // Usuário Logado: Esconde Login, Mostra App
         if (viewLogin) viewLogin.style.display = 'none';
         if (viewMain) viewMain.style.display = 'flex'; // Mantém o layout principal
-        
-        // Atualiza o nome na barra superior
         if (userDisplay) {
             userDisplay.textContent = user.displayName || user.email;
         }
     } else {
-        // Usuário Deslogado: Esconde App, Mostra Login
         if (viewMain) viewMain.style.display = 'none';
-        
-        // 🚨 O SEGREDO ESTÁ AQUI: 'flex' no lugar de 'block' resolve o encolhimento!
         if (viewLogin) viewLogin.style.display = 'flex'; 
     }
 };

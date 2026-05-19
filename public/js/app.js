@@ -82,20 +82,16 @@ function aplicarFiltrosMemoria() {
     renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
 }
 
+// observarAutenticacao importado de auth.js, é a função que monitora o estado de login do usuário em tempo real
 observarAutenticacao((user) => {
     if (user) {
         // --- CASO: USUÁRIO LOGADO ---
         console.log("Usuário logado:", user.uid);
-        
-        // 1. Tratamento de Interface (O que estava no wrapper antigo)
-        const nomeExibicao = getRequiredElement('user-display-name');
-        nomeExibicao.innerText = user.displayName || user.email;
         gerenciarEstadoAuth(user);
 
         // 2. Ouvintes em tempo real do Firestore (O montão de código)
         unsubscribeSaldosAnuais = escutarSaldosAnuais(user.uid, (saldos) => {
             saldosAnuaisGlobais = saldos;
-            console.log("Saldos anuais atualizados:", saldosAnuaisGlobais);
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
             renderizarTransacoes(transacoesGlobais, contasGlobais, categoriasGlobais, saldosAnuaisGlobais, dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear());
         });
