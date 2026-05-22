@@ -12,17 +12,15 @@ export const getRequiredElement = (id) => {
 };
 
 // Renderiza as contas na barra lateral, mostrando o saldo real de hoje (considerando o saldo inicial + todas as transações do ano até hoje)
-export const renderizarContas = (contas, saldosAnuais = [], idsSelecionados = []) => {
+// Renderiza as contas na barra lateral
+export const renderizarContas = (contas, idsSelecionados = []) => {
     const container = document.getElementById('lista-contas');
     if (!container) return;
     container.innerHTML = '';
 
-    const anoAtual = new Date().getFullYear();
-
     contas.forEach(conta => {
-        // Encontra o balanço do ano corrente para extrair o saldo cronológico de hoje
-        const registroSaldo = saldosAnuais.find(s => s.contaId === conta.id && s.ano === anoAtual);
-        const saldoRealHoje = registroSaldo ? Number(registroSaldo.saldoAtualHoje) : (Number(conta.saldoInicial) || 0);
+        // Agora o saldo real hoje é mantido atualizado diretamente na coleção da conta pelo Algoritmo Mestre!
+        const saldoRealHoje = Number(conta.saldoAtual) || 0;
 
         const li = document.createElement('li');
         li.className = 'sidebar-item';
@@ -132,7 +130,7 @@ export const gerenciarEstadoAuth = (user) => {
         }
     } else {
         if (viewMain) viewMain.style.display = 'none';
-        if (viewLogin) viewLogin.style.display = 'flex'; 
+        if (viewLogin) viewLogin.style.display = 'flex';
     }
 };
 
@@ -148,56 +146,50 @@ export function atualizarMesExibido(mes, ano) {
     }
 }
 
-export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuais = [], mesSelecionado, anoSelecionado) {
+export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
     const container = document.getElementById('lista-transacoes');
-    const cardSaldoAnterior = document.getElementById('valor-saldo-anterior');
-    const cardFluxoMes = document.getElementById('valor-total-periodo');
+    const cardSaldoAnterior = document.getElementById('saldo-anterior');
+    const cardFluxoMes = document.getElementById('fluxo-mes');
 
-    if (!container || !transacoes || !contas || !categorias || !saldosAnuais) return;
-
-    container.innerHTML = '';
-
-    // --- CÁLCULO INSTANTÂNEO DO SALDO ANTERIOR CONSOLIDADO ---
-    let saldoAnteriorCalculado = 0;
-    const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    
-    let anoBusca = anoSelecionado;
-    let mesAnteriorIndex = mesSelecionado - 1;
-    
-    if (mesSelecionado === 0) { // Se a tela está em Janeiro, busca o Dezembro do ano anterior
-        anoBusca = anoSelecionado - 1;
-        mesAnteriorIndex = 11;
-    }
-
-    contas.forEach(conta => {
-        const registro = saldosAnuais.find(s => s.contaId === conta.id && s.ano === anoBusca);
-        if (registro) {
-            const marcador = mesesMarcadores[mesAnteriorIndex];
-            saldoAnteriorCalculado += Number(registro[marcador]) || 0;
-        } else {
-            // Fallback: se não achar consolidações passadas, usa o saldo inicial se for o ano de criação
-            saldoAnteriorCalculado += Number(conta.saldoInicial) || 0;
-        }
-    });
-
-    if (cardSaldoAnterior) cardSaldoAnterior.textContent = formatarMoeda(saldoAnteriorCalculado);
-
-    // 🚨 SEGURANÇA MÁXIMA: Se as dependências não carregaram, exibe um feedback amigável e sai da função
-    if (!contas || contas.length === 0 || !categorias || categorias.length === 0) {
-        container.innerHTML = `<div class="transacao-item">Carregando dados complementares...</div>`;
-        return; 
-    }
-
-    if (transacoes.length === 0) {
-        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este mês.</div>`;
+    if (!container || !transacoesFiltradas) {
+        console.log("Aguardando dados para renderizar as transações...");
         return;
     }
 
-    let saldoCorrido = saldoAnteriorCalculado;
-    let fluxoDoMes = 0;
+    container.innerHTML = '';
 
-    // Garante ordenação ascendente para montar o extrato diário corrido perfeitamente
-    const transacoesOrdenadas = [...transacoes].sort((a, b) => {
+    // 1. Atualiza o Card de Saldo Anterior com o valor já calculado na outra função
+    if (cardSaldoAnterior) {
+        cardSaldoAnterior.textContent = formatarMoeda(saldoDeReferencia);
+    }
+
+    if (transacoesFiltradas.length === 0) {
+        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este período.</div>`;
+        if (cardFluxoMes) cardFluxoMes.textContent = formatarMoeda(0);
+        return;
+    }
+
+    // 2. Primeira Passagem: Calcular apenas o Fluxo do Mês
+    let fluxoDoMes = 0;
+    transacoesFiltradas.forEach(t => {
+        const valor = Number(t.valor) || 0;
+        if (t.tipo === 'receita') fluxoDoMes += valor;
+        else if (t.tipo === 'despesa') fluxoDoMes -= valor;
+    });
+
+    // 3. Descobrir o VERDADEIRO Saldo Anterior (Baseado no saldo final que o Firebase informou)
+    // Se o saldoDeReferencia (final) for R$ 100, e o fluxo foi R$ +20, o mês começou com R$ 80.
+    const verdadeiroSaldoAnterior = saldoDeReferencia - fluxoDoMes;
+
+    // Atualiza o Card de Saldo Anterior com o valor retro-calculado
+    if (cardSaldoAnterior) {
+        cardSaldoAnterior.textContent = formatarMoeda(verdadeiroSaldoAnterior);
+    }
+
+    // 4. Segunda Passagem: Desenhar as linhas com a ordenação ascendente e o extrato corrido
+    let saldoCorrido = verdadeiroSaldoAnterior;
+
+    const transacoesOrdenadas = [...transacoesFiltradas].sort((a, b) => {
         const dataA = a.data?.toDate ? a.data.toDate() : new Date(a.data);
         const dataB = b.data?.toDate ? b.data.toDate() : new Date(b.data);
         return dataA - dataB;
@@ -207,29 +199,34 @@ export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuai
         const valor = Number(t.valor) || 0;
         if (t.tipo === 'receita') {
             saldoCorrido += valor;
-            fluxoDoMes += valor;
         } else if (t.tipo === 'despesa') {
             saldoCorrido -= valor;
-            fluxoDoMes -= valor;
         }
 
         const itemDiv = document.createElement('div');
         itemDiv.className = 'transacao-item';
-        
+
         const dataStr = t.data?.toDate ? t.data.toDate().toLocaleDateString('pt-BR') : new Date(t.data).toLocaleDateString('pt-BR');
         const classeCor = t.tipo === 'receita' ? 'texto-receita' : 'texto-despesa';
+
+        // Lógica para Transferência (exibe o nome da conta parceira se existir, senão a conta original)
+        let displayConta = t.contaNome || 'Sem Conta';
+        if (t.tipoTransferencia) { // Supondo que você flaggou isso no seu app.js
+            displayConta += ' (Transf)';
+        }
 
         itemDiv.innerHTML = `
             <span>${dataStr}</span>
             <span title="${t.descricao}">${t.descricao}</span>
             <span>${t.categoriaNome || 'Sem Categoria'}</span>
-            <span>${t.contaNome || 'Sem Conta'}</span>
+            <span>${displayConta}</span>
             <span class="${classeCor}">${formatarMoeda(valor)}</span>
             <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
         `;
         container.appendChild(itemDiv);
     });
 
+    // 5. Atualiza o Card do Fluxo do Mês
     if (cardFluxoMes) {
         cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
         cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
@@ -242,17 +239,17 @@ export function renderizarTransacoes(transacoes, contas, categorias, saldosAnuai
  * @returns {string} O valor formatado no formato "R$ 1.250,50".
  */
 const formatarMoeda = (valor) => {
-  // Converte para número caso venha como string de um input do DOM
-  const numero = typeof valor === "string" ? parseFloat(valor) : valor;
+    // Converte para número caso venha como string de um input do DOM
+    const numero = typeof valor === "string" ? parseFloat(valor) : valor;
 
-  // Cláusula de salvaguarda para evitar "NaN" ou quebras visuais na UI
-  if (numero === undefined || numero === null || isNaN(numero)) {
-    return "R$ 0,00";
-  }
+    // Cláusula de salvaguarda para evitar "NaN" ou quebras visuais na UI
+    if (numero === undefined || numero === null || isNaN(numero)) {
+        return "R$ 0,00";
+    }
 
-  // Utiliza a API nativa de internacionalização do navegador
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(numero);
+    // Utiliza a API nativa de internacionalização do navegador
+    return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    }).format(numero);
 };

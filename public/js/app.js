@@ -1,3 +1,4 @@
+import { auth } from './firebase-config.js';
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
 import {
     getRequiredElement,
@@ -8,12 +9,12 @@ import {
     atualizarMesExibido,
     gerenciarEstadoAuth
 } from './ui.js';
-import { auth } from './firebase-config.js';
-import { escutarContas, escutarCategorias, escutarSaldosAnuais,salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
+import { escutarContas, escutarCategorias, escutarSaldosAnuais, salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
 const loginForm = getRequiredElement('auth-form');
+
 // --- LÓGICA DO MODAL DE CONTA ---
 const modalConta = document.getElementById('modal-conta');
 const btnAbrirModal = document.getElementById('btn-nova-conta');
@@ -25,105 +26,51 @@ let dataFiltroAtual = new Date();
 let unsubscribeContas = null;
 let unsubscribeCategorias = null;
 let unsubscribeTransacoes = null;
+let unsubscribeSaldosAnuais = null;
 
 let contasGlobais = [];
 let categoriasGlobais = [];
 let transacoesGlobais = [];
+let saldosAnuaisGlobais = [];
 
 let contasSelecionadasIds = [];     // Armazenará uma lista de IDs ex: ['id_itau', 'id_carteira']
 let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_lazer', 'id_saude']
 
-let saldosAnuaisGlobais = [];
-let unsubscribeSaldosAnuais = null;
-
-function aplicarFiltrosMemoria() {
-    // 1. Clona o array global de transações do mês para aplicar os filtros
-    let transacoesFiltradas = [...transacoesGlobais];
-
-    // 2. Se houver pelo menos uma conta selecionada na sidebar, filtra
-    if (contasSelecionadasIds.length > 0) {
-        transacoesFiltradas = transacoesFiltradas.filter(t => contasSelecionadasIds.includes(t.contaId));
-    }
-
-    // 3. Se houver pelo menos uma categoria selecionada na sidebar, filtra
-    if (categoriasSelecionadasIds.length > 0) {
-        transacoesFiltradas = transacoesFiltradas.filter(t => categoriasSelecionadasIds.includes(t.categoriaId));
-    }
-
-    // === 4. CÁLCULO CRÍTICO: DESCOBRIR O SALDO DE REFERÊNCIA VIVO ===
-    let saldoDeReferencia = 0;
-
-    // Descobre se o mês que o usuário está olhando é o mês atual (mês e ano idênticos a "hoje")
-    const hoje = new Date();
-    const éMesAtual = dataFiltroAtual.getMonth() === hoje.getMonth() &&
-        dataFiltroAtual.getFullYear() === hoje.getFullYear();
-
-    if (éMesAtual) {
-        // MÊS ATUAL: O saldo vivo vem em tempo real do seu array 'contasGlobais'
-        if (contasSelecionadasIds.length > 0) {
-            // Se tem contas filtradas, soma o saldoAtual APENAS das contas selecionadas
-            saldoDeReferencia = contasSelecionadasIds.reduce((acumulador, id) => {
-                const conta = contasGlobais.find(c => c.id === id);
-                return acumulador + (conta ? parseFloat(conta.saldoAtual) || 0 : 0);
-            }, 0);
-        } else {
-            // Se NÃO tem conta filtrada (Visão Geral), soma o saldoAtual de TODAS as contas
-            saldoDeReferencia = contasGlobais.reduce((acumulador, conta) => {
-                return acumulador + (parseFloat(conta.saldoAtual) || 0);
-            }, 0);
-        }
-    } else {
-        // MÊS PASSADO: O saldoDeReferencia será o snapshot histórico resgatado do banco.
-        // Enquanto não implementamos a coleção 'saldosMensais', deixamos herdando 0 ou sua variável global
-        saldoDeReferencia = typeof saldoHistoricoGeral !== 'undefined' ? saldoHistoricoGeral : 0;
-    }
-
-    // 5. Renderiza o resultado final na tela passando a lista filtrada e o saldo correto
-    renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
-}
-
 // observarAutenticacao importado de auth.js, é a função que monitora o estado de login do usuário em tempo real
 observarAutenticacao((user) => {
-    if (user) {
-        // --- CASO: USUÁRIO LOGADO ---
+    if (user) { // --- CASO: USUÁRIO LOGADO ---
         console.log("Usuário logado:", user.uid);
         gerenciarEstadoAuth(user);
-
-        // 2. Ouvintes em tempo real do Firestore (O montão de código)
+        // Ouvintes em tempo real do Firestore
         unsubscribeSaldosAnuais = escutarSaldosAnuais(user.uid, (saldos) => {
             saldosAnuaisGlobais = saldos;
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
-            renderizarTransacoes(transacoesGlobais, contasGlobais, categoriasGlobais, saldosAnuaisGlobais, dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear());
+            aplicarFiltrosMemoria(); 
         });
-
         unsubscribeContas = escutarContas(user.uid, (contas) => {
             contasGlobais = contas;
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
+            aplicarFiltrosMemoria(); 
         });
-
         unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
             categoriasGlobais = categorias;
             renderizarCategorias(categorias, categoriasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
+            aplicarFiltrosMemoria();
         });
-
-        // 3. Busca inicial das transações do mês vigente
+        // Busca inicial das transações do mês vigente
         carregarTransacoesDoMes(user.uid);
-
     } else {
         // --- CASO: USUÁRIO DESLOGADO (LOGOUT) ---
         console.log("Nenhum usuário logado.");
-
         // 1. Tratamento de Interface Unificado (Garante o CSS sem encolher)
         gerenciarEstadoAuth(user);
-
         // 2. Parar de ouvir todas as coleções do banco de dados
         if (unsubscribeSaldosAnuais) unsubscribeSaldosAnuais();
         if (unsubscribeContas) unsubscribeContas();
         if (unsubscribeCategorias) unsubscribeCategorias();
         if (unsubscribeTransacoes) unsubscribeTransacoes();
-
         // 3. Limpar completamente os estados globais na memória
         saldosAnuaisGlobais = [];
         contasGlobais = [];
@@ -131,15 +78,32 @@ observarAutenticacao((user) => {
         transacoesGlobais = [];
         contasSelecionadasIds = [];
         categoriasSelecionadasIds = [];
-
-        // 4. Limpar a UI desenhando estruturas vazias
+        // 4. Limpar a UI desenhando estruturas vazias (Assinatura nova!)
         renderizarContas([], []);
         renderizarCategorias([]);
-        renderizarTransacoes([], [], [], [], dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear());
+        renderizarTransacoes([], 0); // Tabela vazia, saldo zerado.
     }
 });
 
-// LISTENER PARA SUBMISSÃO DO FORMULÁRIO
+// Função para iniciar a escuta de transações (chamada no login e na troca de mês)
+function carregarTransacoesDoMes(userId) {
+    const mes = dataFiltroAtual.getMonth();
+    const ano = dataFiltroAtual.getFullYear();
+    
+    // Atualiza o texto no topo da tela (ex: "Maio de 2024")
+    atualizarMesExibido(mes, ano);
+    
+    // Se já houver uma escuta ativa, cancela para não duplicar
+    if (unsubscribeTransacoes) unsubscribeTransacoes();
+    
+    unsubscribeTransacoes = escutarTransacoesPorMes(userId, mes, ano, (transacoes) => {
+        transacoesGlobais = transacoes;
+        // Agora, simplesmente chama o Maestro!
+        aplicarFiltrosMemoria();
+    });
+}
+
+// LISTENER PARA SUBMISSÃO DO FORMULÁRIO (LOGIN/SIGNUP)
 loginForm.addEventListener('submit', async function (event) {
     event.preventDefault();
 
@@ -225,18 +189,18 @@ if (btnSair) {
     });
 }
 
-// Abrir modal
+// Abrir modal Conta
 btnAbrirModal.addEventListener('click', () => {
     modalConta.classList.add('active');
 });
 
-// Fechar modal
+// Fechar modal Conta
 btnFecharModal.addEventListener('click', () => {
     modalConta.classList.remove('active');
     formConta.reset();
 });
 
-// Salvar via Formulário
+// Salvar Conta via Formulário
 formConta.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -315,7 +279,7 @@ selectTipo.addEventListener('change', (e) => {
     import('./ui.js').then(ui => ui.tratarMudancaTipo(e.target.value));
 });
 
-//  Salvar a Transação
+// Salvar a Transação
 formTransacao.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -344,9 +308,7 @@ formTransacao.addEventListener('submit', async (e) => {
     };
 
     try {
-        // userId deve vir da sua lógica de autenticação (ex: auth.currentUser.uid)
         const userId = auth.currentUser.uid;
-
         await salvarTransacao(userId, dados);
 
         alert('Transação salva com sucesso!');
@@ -359,27 +321,6 @@ formTransacao.addEventListener('submit', async (e) => {
 });
 // --- TRANSAÇÃO - fim ---
 
-// Função para iniciar a escuta de transações (chamada no login e na troca de mês)
-function carregarTransacoesDoMes(userId) {
-    const mes = dataFiltroAtual.getMonth();
-    const ano = dataFiltroAtual.getFullYear();
-    // Atualiza o texto no topo da tela (ex: "Maio de 2024")
-    atualizarMesExibido(mes, ano);
-    // Se já houver uma escuta ativa, cancela para não duplicar
-    if (unsubscribeTransacoes) unsubscribeTransacoes();
-    unsubscribeTransacoes = escutarTransacoesPorMes(userId, dataFiltroAtual.getMonth(), dataFiltroAtual.getFullYear(), (transacoes) => {
-        transacoesGlobais = transacoes;
-        renderizarTransacoes(
-            transacoesGlobais,
-            contasGlobais,
-            categoriasGlobais,
-            saldosAnuaisGlobais,
-            dataFiltroAtual.getMonth(),
-            dataFiltroAtual.getFullYear()
-        );
-    });
-}
-
 // --- EVENT LISTENERS DE NAVEGAÇÃO DE MÊS ---
 document.getElementById('btn-prev-month').addEventListener('click', () => {
     dataFiltroAtual.setMonth(dataFiltroAtual.getMonth() - 1);
@@ -390,7 +331,7 @@ document.getElementById('btn-next-month').addEventListener('click', () => {
     carregarTransacoesDoMes(auth.currentUser.uid);
 });
 
-// --- LOGICA DE ATIVAÇÃO DOS FILTROS DA SIDEBAR ---
+// --- LÓGICA DE ATIVAÇÃO DOS FILTROS DA SIDEBAR ---
 
 // Ouvinte para a lista de Contas (Múltipla Escolha)
 document.getElementById('lista-contas')?.addEventListener('change', (e) => {
@@ -398,12 +339,10 @@ document.getElementById('lista-contas')?.addEventListener('change', (e) => {
         const chk = e.target;
         const idConta = chk.dataset.id;
         if (chk.checked) {
-            // Se foi marcado, adiciona na lista se já não estiver lá
             if (!contasSelecionadasIds.includes(idConta)) {
                 contasSelecionadasIds.push(idConta);
             }
         } else {
-            // Se foi desmarcado, remove da lista
             contasSelecionadasIds = contasSelecionadasIds.filter(id => id !== idConta);
         }
         aplicarFiltrosMemoria();
@@ -417,31 +356,83 @@ document.getElementById('lista-categorias')?.addEventListener('change', (e) => {
         const idCategoria = chk.dataset.id;
 
         if (chk.checked) {
-            // Se foi marcado, adiciona na lista
             if (!categoriasSelecionadasIds.includes(idCategoria)) {
                 categoriasSelecionadasIds.push(idCategoria);
             }
         } else {
-            // Se foi desmarcado, remove da lista
             categoriasSelecionadasIds = categoriasSelecionadasIds.filter(id => id !== idCategoria);
         }
-
         aplicarFiltrosMemoria();
     }
 });
 
-// REVIEW ver se isto vai ser utilizado
-// Função centralizadora para atualizar a UI com os novos estados globais:
-// function atualizarRendersInterface() {
-//     renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
-//     renderizarCategorias(categoriasGlobais, categoriasSelecionadasIds);
-//     // Passa os saldos anuais e o mês/ano selecionados na navegação do app
-//     renderizarTransacoes(
-//         transacoesGlobais,
-//         contasGlobais,
-//         categoriasGlobais,
-//         saldosAnuaisGlobais,
-//         dataFiltroAtual.getMonth(),
-//         dataFiltroAtual.getFullYear()
-//     );
-// }
+// --- O MAESTRO DA TELA DE TRANSAÇÕES ---
+function aplicarFiltrosMemoria() {
+    // Adicionamos a segurança inicial. Retiramos os "window." porque 
+    // as variáveis estão no escopo global deste próprio arquivo.
+    if (!contasGlobais || !transacoesGlobais) return;
+
+    // 1. Clona e Filtra as Transações
+    let transacoesFiltradas = [...transacoesGlobais];
+
+    if (contasSelecionadasIds.length > 0) {
+        transacoesFiltradas = transacoesFiltradas.filter(t => contasSelecionadasIds.includes(t.contaId));
+    }
+
+    if (categoriasSelecionadasIds.length > 0) {
+        transacoesFiltradas = transacoesFiltradas.filter(t => categoriasSelecionadasIds.includes(t.categoriaId));
+    }
+
+    // === 2. CÁLCULO DO SALDO DE REFERÊNCIA ===
+    let saldoDeReferencia = 0;
+    
+    const hoje = new Date();
+    const mesFiltro = dataFiltroAtual.getMonth();
+    const anoFiltro = dataFiltroAtual.getFullYear();
+    const éMesAtual = mesFiltro === hoje.getMonth() && anoFiltro === hoje.getFullYear();
+
+    if (éMesAtual) {
+        // LÓGICA DO MÊS ATUAL (Usando contasGlobais)
+        if (contasSelecionadasIds.length > 0) {
+            saldoDeReferencia = contasSelecionadasIds.reduce((acumulador, id) => {
+                const conta = contasGlobais.find(c => c.id === id);
+                return acumulador + (conta ? parseFloat(conta.saldoAtual) || 0 : 0);
+            }, 0);
+        } else {
+            saldoDeReferencia = contasGlobais.reduce((acumulador, conta) => {
+                return acumulador + (parseFloat(conta.saldoAtual) || 0);
+            }, 0);
+        }
+    } else {
+        // LÓGICA DO MÊS PASSADO
+        const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+        let anoBusca = anoFiltro;
+        let mesAnteriorIndex = mesFiltro - 1;
+        
+        if (mesFiltro === 0) { // Janeiro busca Dezembro do ano passado
+            anoBusca = anoFiltro - 1;
+            mesAnteriorIndex = 11;
+        }
+
+        // Descobre quais contas vamos somar (todas ou apenas as filtradas)
+        const contasParaCalcular = contasSelecionadasIds.length > 0 
+            ? contasGlobais.filter(c => contasSelecionadasIds.includes(c.id)) 
+            : contasGlobais;
+
+        // Soma o saldo histórico dessas contas
+        contasParaCalcular.forEach(conta => {
+            const registro = saldosAnuaisGlobais.find(s => s.contaId === conta.id && s.ano === anoBusca);
+            
+            if (registro) {
+                const marcador = mesesMarcadores[mesAnteriorIndex];
+                saldoDeReferencia += Number(registro[marcador]) || 0;
+            } else {
+                // Se não achar registro, cai no saldoInicial de quando a conta foi criada
+                saldoDeReferencia += Number(conta.saldoInicial) || 0;
+            }
+        });
+    }
+
+    // 3. Envia os dados mastigados para a interface
+    renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
+}
