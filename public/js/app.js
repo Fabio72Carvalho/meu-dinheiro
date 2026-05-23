@@ -7,9 +7,18 @@ import {
     atualizarSelects,
     renderizarTransacoes,
     atualizarMesExibido,
-    gerenciarEstadoAuth
+    gerenciarEstadoAuth,
+    mostrarAlerta
 } from './ui.js';
-import { escutarContas, escutarCategorias, escutarSaldosAnuais, salvarConta, salvarCategoria, salvarTransacao, escutarTransacoesPorMes } from './db.js';
+import { escutarContas,
+    escutarCategorias,
+    escutarSaldosAnuais,
+    salvarConta, salvarCategoria,
+    salvarTransacao,
+    escutarTransacoesPorMes,
+    excluirTransacao,
+    editarTransacao
+ } from './db.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
 const mensagem = getRequiredElement('mensagem');
@@ -36,6 +45,8 @@ let saldosAnuaisGlobais = [];
 let contasSelecionadasIds = [];     // Armazenará uma lista de IDs ex: ['id_itau', 'id_carteira']
 let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_lazer', 'id_saude']
 
+let transacaoEmEdicaoOriginal = null; // Guarda os dados originais para reverter depois
+
 // observarAutenticacao importado de auth.js, é a função que monitora o estado de login do usuário em tempo real
 observarAutenticacao((user) => {
     if (user) { // --- CASO: USUÁRIO LOGADO ---
@@ -45,13 +56,13 @@ observarAutenticacao((user) => {
         unsubscribeSaldosAnuais = escutarSaldosAnuais(user.uid, (saldos) => {
             saldosAnuaisGlobais = saldos;
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
-            aplicarFiltrosMemoria(); 
+            aplicarFiltrosMemoria();
         });
         unsubscribeContas = escutarContas(user.uid, (contas) => {
             contasGlobais = contas;
             renderizarContas(contasGlobais, saldosAnuaisGlobais, contasSelecionadasIds);
             atualizarSelects(contasGlobais, categoriasGlobais);
-            aplicarFiltrosMemoria(); 
+            aplicarFiltrosMemoria();
         });
         unsubscribeCategorias = escutarCategorias(user.uid, (categorias) => {
             categoriasGlobais = categorias;
@@ -89,13 +100,13 @@ observarAutenticacao((user) => {
 function carregarTransacoesDoMes(userId) {
     const mes = dataFiltroAtual.getMonth();
     const ano = dataFiltroAtual.getFullYear();
-    
+
     // Atualiza o texto no topo da tela (ex: "Maio de 2024")
     atualizarMesExibido(mes, ano);
-    
+
     // Se já houver uma escuta ativa, cancela para não duplicar
     if (unsubscribeTransacoes) unsubscribeTransacoes();
-    
+
     unsubscribeTransacoes = escutarTransacoesPorMes(userId, mes, ano, (transacoes) => {
         transacoesGlobais = transacoes;
         // Agora, simplesmente chama o Maestro!
@@ -217,7 +228,7 @@ formConta.addEventListener('submit', async (e) => {
         modalConta.classList.remove('active');
         formConta.reset();
     } catch (error) {
-        alert("Erro ao salvar conta. Tente novamente.");
+        mostrarAlerta("Erro ao salvar conta. Tente novamente.", "erro");
     }
 });
 
@@ -242,7 +253,7 @@ formCat.addEventListener('submit', async (e) => {
         modalCat.classList.remove('active');
         formCat.reset();
     } catch (error) {
-        alert("Erro ao salvar categoria.");
+        mostrarAlerta("Erro ao salvar categoria.", "erro");
     }
 });
 
@@ -309,14 +320,18 @@ formTransacao.addEventListener('submit', async (e) => {
 
     try {
         const userId = auth.currentUser.uid;
-        await salvarTransacao(userId, dados);
-
-        alert('Transação salva com sucesso!');
-        formTransacao.reset();
+        if (transacaoEmEdicaoOriginal) {
+            await editarTransacao(auth.currentUser.uid, transacaoEmEdicaoOriginal, dados);
+            mostrarAlerta("Transação editada!", "sucesso");
+        } else {
+            await salvarTransacao(userId, dados);
+            mostrarAlerta('Transação salva com sucesso!', 'sucesso');
+        }
+        fecharE_LimparModal();
         modalTransacao.style.display = 'none';
     } catch (error) {
         console.error("Erro ao salvar:", error);
-        alert('Erro ao salvar transação. Verifique o console.');
+        mostrarAlerta('Erro ao salvar transação. Verifique o console.', 'erro');
     }
 });
 // --- TRANSAÇÃO - fim ---
@@ -385,7 +400,7 @@ function aplicarFiltrosMemoria() {
 
     // === 2. CÁLCULO DO SALDO DE REFERÊNCIA ===
     let saldoDeReferencia = 0;
-    
+
     const hoje = new Date();
     const mesFiltro = dataFiltroAtual.getMonth();
     const anoFiltro = dataFiltroAtual.getFullYear();
@@ -408,21 +423,21 @@ function aplicarFiltrosMemoria() {
         const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
         let anoBusca = anoFiltro;
         let mesAnteriorIndex = mesFiltro - 1;
-        
+
         if (mesFiltro === 0) { // Janeiro busca Dezembro do ano passado
             anoBusca = anoFiltro - 1;
             mesAnteriorIndex = 11;
         }
 
         // Descobre quais contas vamos somar (todas ou apenas as filtradas)
-        const contasParaCalcular = contasSelecionadasIds.length > 0 
-            ? contasGlobais.filter(c => contasSelecionadasIds.includes(c.id)) 
+        const contasParaCalcular = contasSelecionadasIds.length > 0
+            ? contasGlobais.filter(c => contasSelecionadasIds.includes(c.id))
             : contasGlobais;
 
         // Soma o saldo histórico dessas contas
         contasParaCalcular.forEach(conta => {
             const registro = saldosAnuaisGlobais.find(s => s.contaId === conta.id && s.ano === anoBusca);
-            
+
             if (registro) {
                 const marcador = mesesMarcadores[mesAnteriorIndex];
                 saldoDeReferencia += Number(registro[marcador]) || 0;
@@ -435,4 +450,62 @@ function aplicarFiltrosMemoria() {
 
     // 3. Envia os dados mastigados para a interface
     renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
+}
+
+// Ouvir os cliques no ícone de lápis (Delegação de eventos)
+document.getElementById('lista-transacoes').addEventListener('click', (e) => {
+    // Verifica se clicou no lápis
+    const btnEditar = e.target.closest('.t-acoes');
+    if (btnEditar) {
+        const id = btnEditar.dataset.id;
+        abrirModalEdicao(id);
+    }
+});
+
+function abrirModalEdicao(id) {
+    // Acha a transação na memória
+    const t = transacoesGlobais.find(x => x.id === id);
+    if (!t) return;
+
+    transacaoEmEdicaoOriginal = t; // Guarda a original
+
+    // Preenche os campos do formulário
+    document.getElementById('trans-tipo').value = t.tipo;
+    document.getElementById('trans-valor').value = t.valor;
+    document.getElementById('trans-descricao').value = t.descricao;
+    document.getElementById('select-conta').value = t.contaId;
+    document.getElementById('select-categoria').value = t.categoriaId;
+
+    // Converte timestamp para input type="date" (YYYY-MM-DD)
+    const dataJS = t.data.toDate();
+    document.getElementById('trans-data').value = dataJS.toISOString().split('T')[0];
+
+    // Mostra o botão de excluir e altera título
+    document.getElementById('btn-excluir-transacao').style.display = 'block';
+    document.getElementById('titulo-modal-transacao').innerText = 'Editar Transação';
+
+    // Abre o modal
+    modalTransacao.style.display = 'flex';
+}
+
+// 2. O botão de Excluir
+document.getElementById('btn-excluir-transacao').addEventListener('click', async () => {
+    if (confirm("Tem certeza que deseja excluir esta transação?")) {
+        try {
+            await excluirTransacao(auth.currentUser.uid, transacaoEmEdicaoOriginal);
+            mostrarAlerta("Excluída com sucesso!", "aviso");
+            fecharE_LimparModal();
+        } catch (error) {
+            mostrarAlerta("Erro ao excluir. ", "erro");
+        }
+    }
+});
+
+// Função auxiliar para fechar e resetar o modal
+function fecharE_LimparModal() {
+    formTransacao.reset();
+    transacaoEmEdicaoOriginal = null;
+    document.getElementById('btn-excluir-transacao').style.display = 'none';
+    document.getElementById('titulo-modal-transacao').innerText = 'Nova Transação';
+    modalTransacao.style.display = 'none';
 }

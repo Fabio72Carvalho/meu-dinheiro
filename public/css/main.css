@@ -94,3 +94,50 @@ button:hover {
     pointer-events: none;
     opacity: 0.8;
 }
+
+/* Caixa base */
+.alerta {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 14px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all .35s ease;
+  z-index: 9999;
+  white-space: pre-line;
+}
+
+/* Estados */
+.alerta.mostrar {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.alerta.oculto {
+  pointer-events: none;
+}
+
+/* Tipos */
+.alerta.erro {
+  background: #d9534f;
+}
+
+.alerta.sucesso {
+  background: #5cb85c;
+}
+
+.alerta.info {
+  background: #0275d8;
+}
+
+.alerta.aviso {
+  background: #f0ad4e;
+}

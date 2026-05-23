@@ -12,9 +12,11 @@ import {
     getDocs,
     writeBatch,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    deleteDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// REVIEW
 const mesesNomes = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 /**
@@ -74,7 +76,8 @@ export async function propagarImpactoSaldosAnuais(userId, contaId, dataJS, delta
             for (let mes = 0; mes <= 11; mes++) {
                 // Só aplica o delta da transação em diante
                 if ((ano === anoTransacao && mes >= mesTransacao) || ano > anoTransacao) {
-                    anoData[mesesNomes[mes]] = Number(anoData[mesesNomes[mes]]) + deltaValor;
+                    let saldoSomado = Number(anoData[mesesNomes[mes]]) + deltaValor;
+                    anoData[mesesNomes[mes]] = Math.round(saldoSomado * 100) / 100; // Arredonda para evitar imprecisão de float;
                 }
                 ultimoSaldoConhecido = Number(anoData[mesesNomes[mes]]); // Guarda para o próximo ano
             }
@@ -89,6 +92,7 @@ export async function propagarImpactoSaldosAnuais(userId, contaId, dataJS, delta
                 // Chegou no exato mês da transação? O saldo incorpora o impacto.
                 if (ano === anoTransacao && mes === mesTransacao) {
                     ultimoSaldoConhecido += deltaValor;
+                    ultimoSaldoConhecido = Math.round(ultimoSaldoConhecido * 100) / 100;
                 }
                 novoAnoData[mesesNomes[mes]] = ultimoSaldoConhecido;
             }
@@ -217,37 +221,34 @@ export const salvarTransacao = async (userId, dadosTransacao) => {
     // CENÁRIO A: É UMA TRANSFERÊNCIA
     // ==========================================
     if (dadosTransacao.tipo === 'transferencia') {
-        
         const valorNumber = Number(dadosTransacao.valor);
         const dataJS = new Date(dadosTransacao.data); // Garanta que seja um objeto Date do JS
+        
+        // Gera um ID único para amarrar as duas transações
+        const idGrupoTransferencia = `transf_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         
         // --- A.1) Saída da Conta de Origem ---
         const transacaoSaidaRef = doc(collection(db, "transacoes"));
         const dadosSaida = {
             ...dadosTransacao,
             userId,
-            tipo: 'despesa', // Transforma em saída
-            // (aqui você mantém como já fazia: ajustando descrição/categoria se precisar)
+            tipo: 'despesa',
+            idGrupoTransferencia // -> Salva o elo de ligação
         };
         batch.set(transacaoSaidaRef, dadosSaida);
-        
-        // Propaga o impacto negativo (-) na conta de Origem
         await propagarImpactoSaldosAnuais(userId, dadosTransacao.contaId, dataJS, -valorNumber, batch);
-
-
+        
         // --- A.2) Entrada na Conta de Destino ---
         const transacaoEntradaRef = doc(collection(db, "transacoes"));
         const dadosEntrada = {
             ...dadosTransacao,
             userId,
             tipo: 'receita', // Transforma em entrada
-            contaId: dadosTransacao.contaDestinoId // Salva na conta destino
+            contaId: dadosTransacao.contaDestinoId, // Salva na conta destino
+            idGrupoTransferencia // -> Salva o elo de ligação
         };
         batch.set(transacaoEntradaRef, dadosEntrada);
-
-        // Propaga o impacto positivo (+) na conta de Destino
         await propagarImpactoSaldosAnuais(userId, dadosTransacao.contaDestinoId, dataJS, valorNumber, batch);
-
     } 
     // ==========================================
     // CENÁRIO B: RECEITA OU DESPESA NORMAL
@@ -302,95 +303,78 @@ export function escutarTransacoesPorMes(userId, mes, ano, callback) {
     });
 }
 
-// REVIEW
 /**
- * Função interna que varre os anos consolidados da conta e aplica o impacto em cascata (NoSQL Batch)
+ * Exclui uma transação (e sua irmã, caso seja transferência) e estorna os saldos.
  */
-// async function propagarImpactoSaldosAnuais(userId, contaId, dataJS, valor, tipo) {
-//     const anoTransacao = dataJS.getFullYear();
-//     const mesTransacaoIndex = dataJS.getMonth(); // 0 a 11
-//     const agora = new Date();
-//     const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+export const excluirTransacao = async (userId, transacao) => {
+    try {
+        const batch = writeBatch(db);
 
-//     const impacto = tipo === 'receita' ? Number(valor) : -Number(valor);
+        // Verifica se é uma transação atrelada a uma transferência
+        if (transacao.idGrupoTransferencia) {
+            
+            // 1. Busca todas as transações com este ID de Grupo (a Saída e a Entrada)
+            const q = query(
+                collection(db, "transacoes"), 
+                where("userId", "==", userId),
+                where("idGrupoTransferencia", "==", transacao.idGrupoTransferencia)
+            );
+            const snapshot = await getDocs(q);
 
-//     // Busca apenas as consolidações daquela conta específica
-//     const q = query(
-//         collection(db, "saldos_anuais"),
-//         where("userId", "==", userId),
-//         where("contaId", "==", contaId)
-//     );
-//     const snapshot = await getDocs(q);
+            // 2. Itera sobre as irmãs revertendo o impacto de cada uma
+            for (const docSnap of snapshot.docs) {
+                const tIrma = docSnap.data();
+                const dataIrmaJS = tIrma.data.toDate(); // Converte Timestamp para Date
+                
+                // Lógica de estorno: Se era receita(+), vira negativo(-). Se era despesa(-), vira positivo(+).
+                const deltaEstorno = tIrma.tipo === 'receita' ? -Number(tIrma.valor) : Number(tIrma.valor);
+                
+                // Aplica o estorno nos saldos
+                await propagarImpactoSaldosAnuais(userId, tIrma.contaId, dataIrmaJS, deltaEstorno, batch);
+                
+                // Marca o documento para ser deletado
+                batch.delete(docSnap.ref);
+            }
 
-//     const batch = writeBatch(db);
-//     let anoTransacaoExistia = false;
+        } else {
+            // É uma transação normal (Receita ou Despesa Simples)
+            const dataJS = transacao.data.toDate();
+            const deltaEstorno = transacao.tipo === 'receita' ? -Number(transacao.valor) : Number(transacao.valor);
+            
+            await propagarImpactoSaldosAnuais(userId, transacao.contaId, dataJS, deltaEstorno, batch);
+            
+            const docRef = doc(db, "transacoes", transacao.id);
+            batch.delete(docRef);
+        }
 
-//     snapshot.forEach((docSnap) => {
-//         const dados = docSnap.data();
-//         const anoDoc = Number(dados.ano);
-//         let alterou = false;
+        // Commita tudo de uma vez (Apaga os documentos e corrige os saldos anuais)
+        await batch.commit();
+        console.log("Exclusão e estorno realizados com sucesso!");
 
-//         if (anoDoc === anoTransacao) {
-//             anoTransacaoExistia = true;
-//             // Atualiza o fechamento do mês afetado até dezembro do mesmo ano
-//             for (let i = mesTransacaoIndex; i < 12; i++) {
-//                 dados[mesesMarcadores[i]] = (dados[mesesMarcadores[i]] || 0) + impacto;
-//             }
-//             // Se o lançamento for retroativo ou de hoje, ele altera o saldo real de hoje
-//             if (dataJS <= agora) {
-//                 dados.saldoAtualHoje = (dados.saldoAtualHoje || 0) + impacto;
-//             }
-//             alterou = true;
-//         } else if (anoDoc > anoTransacao) {
-//             // Se mexemos num ano passado, o impacto flui alterando todos os meses dos anos posteriores
-//             for (let i = 0; i < 12; i++) {
-//                 dados[mesesMarcadores[i]] = (dados[mesesMarcadores[i]] || 0) + impacto;
-//             }
-//             dados.saldoAtualHoje = (dados.saldoAtualHoje || 0) + impacto;
-//             alterou = true;
-//         }
+    } catch (e) {
+        console.error("Erro ao excluir transação: ", e);
+        throw e;
+    }
+};
 
-//         if (alterou) {
-//             batch.set(doc(db, "saldos_anuais", docSnap.id), {
-//                 ...dados,
-//                 userId: userId // 🚨 Blindando o userId para a regra de atualização
-//             }, { merge: true });
-//         }
-//     });
+/**
+ * Edita uma transação revertendo a antiga e salvando a nova.
+ */
+export const editarTransacao = async (userId, transacaoAntiga, dadosNovos) => {
+    try {
+        // ATENÇÃO: Aqui não usamos o batch interno, executamos sequencialmente.
+        // Por que? Porque o estorno vai modificar os "saldos_anuais" no banco. 
+        // O salvarTransacao precisa ler o banco ATUALIZADO para aplicar o novo valor por cima.
+        
+        // 1. Exclui a antiga (e a irmã dela, se houver) e estorna todos os saldos
+        await excluirTransacao(userId, transacaoAntiga);
 
-//     // Se o usuário inseriu uma transação de um ano que ainda não tinha registros de fechamento, cria o documento
-//     if (!anoTransacaoExistia) {
-//         const dadosNovos = {
-//             userId,
-//             contaId,
-//             ano: anoTransacao,
-//             saldoAtualHoje: dataJS <= agora ? impacto : 0
-//         };
+        // 2. Salva a nova transação como se fosse inédita (aplicando os novos impactos)
+        await salvarTransacao(userId, dadosNovos);
 
-//         let maiorAnoAnterior = -1;
-//         let saldoBase = 0;
-//         snapshot.forEach(d => {
-//             const a = Number(d.data().ano);
-//             if (a < anoTransacao && a > maiorAnoAnterior) {
-//                 maiorAnoAnterior = a;
-//                 saldoBase = d.data()['dez'] || 0;
-//             }
-//         });
-
-//         mesesMarcadores.forEach((m, idx) => {
-//             if (idx >= mesTransacaoIndex) {
-//                 dadosNovos[m] = saldoBase + impacto;
-//             } else {
-//                 dadosNovos[m] = saldoBase;
-//             }
-//         });
-
-//         dadosNovos.saldoAtualHoje += saldoBase;
-//         batch.set(doc(db, "saldos_anuais", `${contaId}_${anoTransacao}`), {
-//             ...dadosNovos,
-//             userId: userId // Força a presença do userId exigido pela regra de 'create'
-//         });
-//     }
-
-//     await batch.commit();
-// }
+        console.log("Transação editada com sucesso!");
+    } catch (e) {
+        console.error("Erro ao editar transação: ", e);
+        throw e;
+    }
+};

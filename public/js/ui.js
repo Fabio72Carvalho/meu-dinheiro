@@ -222,6 +222,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             <span>${displayConta}</span>
             <span class="${classeCor}">${formatarMoeda(valor)}</span>
             <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
+            <span class="t-acoes" style="cursor: pointer;" data-id="${t.id}">✏️</span>
         `;
         container.appendChild(itemDiv);
     });
@@ -253,3 +254,37 @@ const formatarMoeda = (valor) => {
         currency: "BRL"
     }).format(numero);
 };
+
+// Ícones
+const ICONES = {
+    erro: "❌ ",
+    sucesso: "✔️ ",
+    info: "ℹ️ ",
+    aviso: "⚠️ "
+};
+/**
+ * @param {string | null} mensagem
+ * @param {keyof typeof ICONES } tipo
+ */
+export function mostrarAlerta(mensagem, tipo) {
+    tipo = tipo || "info"; // Padrão para "info" se tipo for undefined ou null
+    const box = document.getElementById("alertaSistema");
+    if (box) {
+        box.className = "alerta oculto";
+        // Aplica o tipo
+        box.classList.add(tipo);
+        // Define o texto
+        box.textContent = mensagem;
+        box.textContent = ICONES[tipo] + mensagem;
+        // Mostra
+        box.classList.remove("oculto");
+        box.classList.add("mostrar");
+        // Some depois de 4 segundos
+        setTimeout(() => {
+            box.classList.remove("mostrar");
+            setTimeout(() => {
+                box.classList.add("oculto");
+            }, 300);
+        }, 4000);
+    }
+}
