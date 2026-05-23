@@ -406,19 +406,21 @@ function aplicarFiltrosMemoria() {
     const anoFiltro = dataFiltroAtual.getFullYear();
     const éMesAtual = mesFiltro === hoje.getMonth() && anoFiltro === hoje.getFullYear();
 
-    if (éMesAtual) {
-        // LÓGICA DO MÊS ATUAL (Usando contasGlobais)
-        if (contasSelecionadasIds.length > 0) {
-            saldoDeReferencia = contasSelecionadasIds.reduce((acumulador, id) => {
-                const conta = contasGlobais.find(c => c.id === id);
-                return acumulador + (conta ? parseFloat(conta.saldoAtual) || 0 : 0);
-            }, 0);
-        } else {
-            saldoDeReferencia = contasGlobais.reduce((acumulador, conta) => {
-                return acumulador + (parseFloat(conta.saldoAtual) || 0);
-            }, 0);
-        }
-    } else {
+    
+    // REVIEW Depois de testar retirar a lógica do mês atual, porque o saldoDeReferencia do mês atual é o saldoAtual das contas, e não o histórico dos saldosAnuaisGlobais. O histórico só é necessário para os meses passados.
+    // if (éMesAtual) {
+    //     // LÓGICA DO MÊS ATUAL (Usando contasGlobais)
+    //     if (contasSelecionadasIds.length > 0) {
+    //         saldoDeReferencia = contasSelecionadasIds.reduce((acumulador, id) => {
+    //             const conta = contasGlobais.find(c => c.id === id);
+    //             return acumulador + (conta ? parseFloat(conta.saldoAtual) || 0 : 0);
+    //         }, 0);
+    //     } else {
+    //         saldoDeReferencia = contasGlobais.reduce((acumulador, conta) => {
+    //             return acumulador + (parseFloat(conta.saldoAtual) || 0);
+    //         }, 0);
+    //     }
+    // } else {
         // LÓGICA DO MÊS PASSADO
         const mesesMarcadores = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
         let anoBusca = anoFiltro;
@@ -446,7 +448,7 @@ function aplicarFiltrosMemoria() {
                 saldoDeReferencia += Number(conta.saldoInicial) || 0;
             }
         });
-    }
+    // }
 
     // 3. Envia os dados mastigados para a interface
     renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);

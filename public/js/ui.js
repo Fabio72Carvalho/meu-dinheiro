@@ -179,7 +179,8 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
 
     // 3. Descobrir o VERDADEIRO Saldo Anterior (Baseado no saldo final que o Firebase informou)
     // Se o saldoDeReferencia (final) for R$ 100, e o fluxo foi R$ +20, o mês começou com R$ 80.
-    const verdadeiroSaldoAnterior = saldoDeReferencia - fluxoDoMes;
+    // const verdadeiroSaldoAnterior = saldoDeReferencia + fluxoDoMes;
+    const verdadeiroSaldoAnterior = saldoDeReferencia ;
 
     // Atualiza o Card de Saldo Anterior com o valor retro-calculado
     if (cardSaldoAnterior) {
