@@ -227,19 +227,29 @@
 /* Cabeçalho das colunas e a linha de cada transação */
 .transacao-header,
 .transacao-item {
-    display: grid !important;
     /* Divide a linha milimetricamente: apenas a descrição diminui se faltar espaço */
-    grid-template-columns: 90px minmax(0, 1fr) 130px 120px 110px 110px;
+    grid-template-columns: 90px minmax(0, 1fr) 130px 120px 110px 110px 100px;
     gap: 15px;
     align-items: center;
     width: 100%;
-    padding: 10px 0;
+    padding: 4px 0;
     box-sizing: border-box;
 }
 
-/* REVIEW */
+.transacao-header {
+    display: grid;
+    font-weight: bold;
+}
+
 .transacao-item {
+    display: grid !important;
     font-size: 0.7rem;
+}
+
+/* Classe para alinhar qualquer coluna à direita */
+.text-right {
+    justify-self: end;
+    text-align: right;
 }
 
 /* Garante o corte com os três pontinhos (...) caso o texto exceda a célula */
@@ -380,7 +390,7 @@
 
 /* Cor para Receitas (ex: Verde) */
 .texto-receita {
-    color: #28a745;
+    color: blue;
     font-weight: bold;
 }
 

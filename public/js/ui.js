@@ -163,11 +163,15 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
         cardSaldoAnterior.textContent = formatarMoeda(saldoDeReferencia);
     }
 
+    const headerTransacao = getRequiredElement('transacao-hdr');
+
     if (transacoesFiltradas.length === 0) {
-        container.innerHTML = `<div class="transacao-item">Nenhuma transação encontrada para este período.</div>`;
+        if (headerTransacao) headerTransacao.style.display = 'none';
+        container.innerHTML = `<div style="text-align: center; padding: 30px; color: #666; grid-column: 1 / -1;">Nenhuma transação encontrada para este período.</div>`;
         if (cardFluxoMes) cardFluxoMes.textContent = formatarMoeda(0);
         return;
     }
+    if (headerTransacao) headerTransacao.style.display = 'grid';
 
     // 2. Primeira Passagem: Calcular apenas o Fluxo do Mês
     let fluxoDoMes = 0;
@@ -221,8 +225,8 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             <span title="${t.descricao}">${t.descricao}</span>
             <span>${t.categoriaNome || 'Sem Categoria'}</span>
             <span>${displayConta}</span>
-            <span class="${classeCor}">${formatarMoeda(valor)}</span>
-            <span class="coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
+            <span class="text-right ${classeCor}">${formatarMoeda(valor)}</span>
+            <span class="text-right coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
             <span class="t-acoes" style="cursor: pointer;" data-id="${t.id}">✏️</span>
         `;
         container.appendChild(itemDiv);
