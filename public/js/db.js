@@ -379,3 +379,35 @@ export const editarTransacao = async (userId, transacaoAntiga, dadosNovos) => {
         throw e;
     }
 };
+
+
+// REVIEW - Isto aqui é provisório
+/** 
+ * Função provisória para testes: Limpa todos os dados do usuário logado
+ */
+export const limparBaseDeDados = async (userId) => {
+    try {
+        // As 4 coleções que definimos na Arquitetura de Dados
+        const colecoes = ['contas', 'categorias', 'transacoes', 'saldos_anuais'];
+
+        for (const nomeColecao of colecoes) {
+            // 1. Consulta todos os documentos desta coleção que pertencem ao usuário
+            const q = query(collection(db, nomeColecao), where("userId", "==", userId));
+            const querySnapshot = await getDocs(q);
+
+            // 2. Cria um array de promessas de exclusão
+            const promessasDeletar = [];
+            querySnapshot.forEach((documento) => {
+                promessasDeletar.push(deleteDoc(doc(db, nomeColecao, documento.id)));
+            });
+
+            // 3. Executa a exclusão de todos os documentos encontrados na coleção atual
+            await Promise.all(promessasDeletar);
+        }
+        
+        console.log("Limpeza do Firestore concluída com sucesso.");
+    } catch (erro) {
+        console.error("Erro ao limpar a base de dados: ", erro);
+        throw erro; // Repassa o erro para o frontend tratar
+    }
+};

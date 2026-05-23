@@ -511,3 +511,34 @@ function fecharE_LimparModal() {
     document.getElementById('titulo-modal-transacao').innerText = 'Nova Transação';
     modalTransacao.style.display = 'none';
 }
+
+// Adicione no topo junto aos outros imports do db.js:
+import { limparBaseDeDados } from './db.js';
+
+// --- BOTÃO PROVISÓRIO DE LIMPEZA ---
+const btnLimparDados = document.getElementById('btn-limpar-dados');
+if (btnLimparDados) {
+    btnLimparDados.addEventListener('click', async () => {
+        // Camada de segurança para evitar cliques acidentais
+        const confirmacao = confirm("⚠️ CUIDADO! Isso apagará TODAS as suas contas, categorias, transações e histórico.\n\nTem certeza absoluta que deseja resetar sua conta?");
+        
+        if (confirmacao) {
+            // Botão em estado de "carregando"
+            const textoOriginal = btnLimparDados.innerText;
+            btnLimparDados.innerText = "Apagando...";
+            btnLimparDados.disabled = true;
+
+            try {
+                // Chama a função passando o ID do usuário logado
+                await limparBaseDeDados(auth.currentUser.uid);
+                alert("Base de dados zerada com sucesso!");
+            } catch (error) {
+                alert("Erro ao limpar dados. Verifique o console.");
+            } finally {
+                // Restaura o botão
+                btnLimparDados.innerText = textoOriginal;
+                btnLimparDados.disabled = false;
+            }
+        }
+    });
+}
