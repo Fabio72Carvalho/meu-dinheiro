@@ -217,7 +217,7 @@ formConta.addEventListener('submit', async (e) => {
 
     const dadosConta = {
         nome: document.getElementById('conta-nome').value,
-        saldoAtual: document.getElementById('conta-saldo').value
+        saldoInicial: document.getElementById('conta-saldo').value
     };
 
     try {

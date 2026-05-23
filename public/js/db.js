@@ -134,6 +134,7 @@ export const salvarConta = async (userId, dadosConta) => {
         userId,
         saldoAtual: saldo
     };
+    
     batch.set(contaRef, contaCompleta);
     
     // 2. Cria imediatamente o saldo_anual do ANO ATUAL
