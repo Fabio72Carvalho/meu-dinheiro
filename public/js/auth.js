@@ -29,17 +29,34 @@ export const cadastrarUsuario = async (nome, email, senha) => {
 };
 
 // Função para Login
+// No seu auth.js
 export const fazerLogin = async (email, senha) => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, senha);
         return userCredential.user;
     } catch (error) {
-        if (error instanceof Error) {
-            console.error("Erro ao logar: " + error.message);
-        } else {
-            console.error("Erro ao logar: " + String(error));
+        // Tradução amigável dos erros do Firebase
+        let mensagemAmigavel = "Ocorreu um erro ao tentar logar.";
+
+        switch (error.code) {
+            case 'auth/invalid-credential':
+                mensagemAmigavel = "E-mail ou senha incorretos. Verifique seus dados.";
+                break;
+            case 'auth/user-not-found':
+                mensagemAmigavel = "Usuário não encontrado.";
+                break;
+            case 'auth/wrong-password':
+                mensagemAmigavel = "Senha incorreta.";
+                break;
+            case 'auth/too-many-requests':
+                mensagemAmigavel = "Muitas tentativas falhas. Tente novamente mais tarde.";
+                break;
+            default:
+                mensagemAmigavel = "Erro de conexão. Tente novamente.";
         }
-        throw error;
+        
+        // Dispara o erro para o app.js tratar (ou você pode chamar mostrarAlerta aqui)
+        throw new Error(mensagemAmigavel);
     }
 };
 

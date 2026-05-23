@@ -108,22 +108,97 @@ if (btnSalvarConta) {
 		
 ############### CADASTRAR CONTAS - FIM
 
-🚀 Ticket de Continuidade: Projeto "Meu Dinheiro"
-Status Atual (O que já temos rodando liso):
 
-Motor Mestre (Firestore): Transações, receitas, despesas e transferências estão sendo salvas via writeBatch. O saldo das contas e os consolidados mensais (saldos_anuais) são atualizados de forma atômica e perfeita.
+// ==========================================
+    // CENÁRIO A: É UMA TRANSFERÊNCIA
+    // ==========================================
+    if (dadosTransacao.tipo === 'transferencia') {
+        
+        const valorNumber = Number(dadosTransacao.valor);
+        const dataJS = new Date(dadosTransacao.data);
+        
+        // 🌟 NOVO: Gera um ID único para amarrar as duas transações
+        const idGrupoTransferencia = `transf_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        
+        // --- A.1) Saída da Conta de Origem ---
+        const transacaoSaidaRef = doc(collection(db, "transacoes"));
+        const dadosSaida = {
+            ...dadosTransacao,
+            userId,
+            tipo: 'despesa', 
+            idGrupoTransferencia // 🌟 NOVO: Salva o elo de ligação
+        };
+        batch.set(transacaoSaidaRef, dadosSaida);
+        await propagarImpactoSaldosAnuais(userId, dadosTransacao.contaId, dataJS, -valorNumber, batch);
 
-Interface (UI): O ui.js foi unificado. A barra lateral lê o saldo atualizado dinamicamente. O extrato central retro-calcula o saldo inicial do mês e desenha o extrato corrido com precisão contábil.
+        // --- A.2) Entrada na Conta de Destino ---
+        const transacaoEntradaRef = doc(collection(db, "transacoes"));
+        const dadosEntrada = {
+            ...dadosTransacao,
+            userId,
+            tipo: 'receita', 
+            contaId: dadosTransacao.contaDestinoId, 
+            idGrupoTransferencia // 🌟 NOVO: Salva o elo de ligação
+        };
+        batch.set(transacaoEntradaRef, dadosEntrada);
+        await propagarImpactoSaldosAnuais(userId, dadosTransacao.contaDestinoId, dataJS, valorNumber, batch);
 
-Filtros Mágicos: O "Maestro" (aplicarFiltrosMemoria) no app.js cruza dados de contas, categorias e transações instantaneamente.
+    }
 
-Onde Paramos:
-Concluímos a lógica central de salvamento e renderização de saldos. O aplicativo base já funciona perfeitamente como um gerenciador de caixa!
 
-Ideias de Próximos Passos para o Futuro:
+export async function propagarImpactoSaldosAnuais(userId, contaId, dataJS, deltaValor, batchExterno = null) {
+	
+	
+⚠️ Só um detalhe para você ficar atento no app.js:
+Quando você implementar a tela e capturar o clique do botão "Editar" no seu extrato, certifique-se de guardar o objeto completo da transação original que veio do banco (com o atributo id e o idGrupoTransferencia se houver).
 
-Edição e Exclusão: Implementar a lógica para apagar ou editar uma transação (o que exigirá reverter o impacto no Motor Mestre).
+O seu evento de submit do formulário de edição precisará chamar a função exatamente assim:
 
-UX/UI: Melhorar o visual dos cards de resumo e interações de botões.
+JavaScript
+// transacaoOriginal veio lá do seu clique na linha do extrato
+// dadosVindosDoFormulario são os inputs que o usuário alterou na tela
+await editarTransacao(userId, transacaoOriginal, dadosVindosDoFormulario);
+Se o transacaoOriginal estiver completinho com o elo de ligação, o motor mestre vai fazer toda a mágica sem pestanejar. Pode fazer os testes de exclusão e edição mudando valores, contas e datas, e acompanhe o console do Firebase para ver os saldos se auto-ajustando!
 
-Dashboards: Preparar terreno para colocar um gráfico de despesas no futuro.
+    <!-- --- MODAL: Nova Transação --- -->
+    <div id="modal-transacao" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="titulo-modal-transacao" >Nova Transação</h2>
+            <form id="form-transacao">
+                <input type="text" id="trans-descricao" placeholder="Descrição (Ex: Supermercado)" required>
+                <input type="number" id="trans-valor" placeholder="Valor (0.00)" step="0.01" required>
+
+                <select id="trans-tipo" required>
+                    <option value="despesa">Despesa</option>
+                    <option value="receita">Receita</option>
+                    <option value="transferencia">Transferência</option>
+                </select>
+
+                <input type="date" id="trans-data" required>
+
+                <div id="group-categoria">
+                    <label for="select-categoria">Categoria</label>
+                    <select id="select-categoria" required>
+                        <option value="">Selecione a Categoria</option>
+                    </select>
+                </div>
+
+                <select id="select-conta" required>
+                    <option value="">Selecione a Conta</option>
+                </select>
+
+                <div id="group-conta-destino" style="display: none;">
+                    <label for="select-conta-destino">Conta de Destino</label>
+                    <select id="select-conta-destino">
+                        <option value="">Selecione a conta de destino</option>
+                    </select>
+                </div>
+
+                <textarea id="trans-nota" placeholder="Observações (opcional)"></textarea>
+
+                <button type="submit" class="main-btn">Salvar Transação</button>
+                <button type="button" id="btn-excluir-transacao" class="btn btn-danger" style="display: none;">🗑️ Excluir</button>
+            </form>
+        </div>
+    </div>

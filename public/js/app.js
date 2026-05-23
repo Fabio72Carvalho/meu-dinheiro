@@ -22,7 +22,6 @@ import { escutarContas,
  } from './db.js';
 
 // --- SELEÇÃO DE ELEMENTOS DA UI ---
-const mensagem = getRequiredElement('mensagem');
 const loginForm = getRequiredElement('auth-form');
 
 // --- LÓGICA DO MODAL DE CONTA ---
@@ -127,26 +126,18 @@ loginForm.addEventListener('submit', async function (event) {
 
     // 2. Inicia o estado de carregamento
     mainBtn.classList.add('btn-loading');
-    mensagem.innerText = ""; // Limpa mensagens anteriores
 
     try {
         if (mode === 'signup') {
             const nome = /** @type {HTMLInputElement} */ (getRequiredElement('nome')).value;
             await cadastrarUsuario(nome, email, senhaInput.value);
-            mensagem.innerText = "Usuário criado com sucesso!";
+            mostrarAlerta("Usuário criado com sucesso!", "sucesso");
         } else {
             await fazerLogin(email, senhaInput.value);
-            mensagem.innerText = "Login realizado!";
+            mostrarAlerta("Login realizado!", "sucesso");
         }
     } catch (error) {
-        // 3. Tratamento de erro centralizado
-        console.error("Erro na autenticação:", error);
-
-        if (error instanceof Error) {
-            mensagem.innerText = `Erro: ${error.message}`;
-        } else {
-            mensagem.innerText = "Ocorreu um erro inesperado. Tente novamente.";
-        }
+        mostrarAlerta(error.message, 'erro');
     } finally {
         // 4. Finalização (Sempre executa, sucesso ou erro)
         senhaInput.value = ''; // Limpa senha por segurança
