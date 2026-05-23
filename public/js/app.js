@@ -47,6 +47,32 @@ let categoriasSelecionadasIds = []; // Armazenará uma lista de IDs ex: ['id_laz
 
 let transacaoEmEdicaoOriginal = null; // Guarda os dados originais para reverter depois
 
+const inicializarSeletorMes = () => {
+    const inputMes = document.getElementById('seletor-mes-invisivel');
+    
+    if (!inputMes) return;
+
+    inputMes.addEventListener('change', (e) => {
+        const valor = e.target.value; // Formato esperado: "YYYY-MM"
+        if (valor) {
+            const [ano, mes] = valor.split('-').map(Number);
+            
+            // 1. Atualiza a referência global
+            dataFiltroAtual = new Date(ano, mes - 1, 1);
+            
+            // 2. LOG: Verifique no console se isso está disparando
+            console.log("Novo Mês selecionado:", dataFiltroAtual);
+
+            // 3. Executa a carga de dados
+            if (auth.currentUser) {
+                carregarTransacoesDoMes(auth.currentUser.uid);
+            }
+        }
+    });
+};
+
+document.addEventListener('DOMContentLoaded', inicializarSeletorMes);
+
 // observarAutenticacao importado de auth.js, é a função que monitora o estado de login do usuário em tempo real
 observarAutenticacao((user) => {
     if (user) { // --- CASO: USUÁRIO LOGADO ---

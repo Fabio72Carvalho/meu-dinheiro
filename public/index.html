@@ -78,11 +78,21 @@
         <div class="month-selector-bar">
             <div class="month-controls">
                 <button id="btn-prev-month" class="btn-icon">&lt;</button>
-                <h3 id="current-month-display">mes corrente</h3>
+
+                <div class="month-picker-container" style="position: relative; cursor: pointer;">
+                    <h3 id="current-month-display">Mês Corrente</h3>
+                    <input type="month" id="seletor-mes-invisivel"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                </div>
+
                 <button id="btn-next-month" class="btn-icon">&gt;</button>
             </div>
             <button id="btn-nova-transacao" class="btn-primary">+ Nova Transação</button>
         </div>
+
+
+
+
 
         <div class="main-content">
 
