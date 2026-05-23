@@ -228,12 +228,31 @@
 .transacao-header,
 .transacao-item {
     /* Divide a linha milimetricamente: apenas a descrição diminui se faltar espaço */
-    grid-template-columns: 90px minmax(0, 1fr) 130px 120px 110px 110px 100px;
+    grid-template-columns: 90px minmax(0, 1fr) 130px 120px 110px 110px 50px;
     gap: 15px;
     align-items: center;
     width: 100%;
     padding: 4px 0;
     box-sizing: border-box;
+}
+
+.coluna-acao {
+    display: flex;
+    justify-content: flex-start; /* Move o ícone para perto da coluna anterior */
+    align-items: center;
+}
+
+.btn-acao {
+    cursor: pointer;
+    padding: 4px; /* Aumenta a área de toque/clique apenas ao redor do ícone */
+    display: inline-flex;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+.btn-acao:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* Feedback visual ao passar o mouse */
 }
 
 .transacao-header {

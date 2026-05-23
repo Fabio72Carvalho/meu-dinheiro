@@ -1,4 +1,5 @@
 import { auth } from './firebase-config.js';
+import { limparBaseDeDados } from './db.js';
 import { cadastrarUsuario, fazerLogin, fazerLogout, observarAutenticacao } from './auth.js';
 import {
     getRequiredElement,
@@ -454,10 +455,33 @@ function aplicarFiltrosMemoria() {
     renderizarTransacoes(transacoesFiltradas, saldoDeReferencia);
 }
 
+// 2. O botão de Excluir
+document.getElementById('btn-excluir-transacao').addEventListener('click', async () => {
+    if (confirm("Tem certeza que deseja excluir esta transação?")) {
+        try {
+            await excluirTransacao(auth.currentUser.uid, transacaoEmEdicaoOriginal);
+            mostrarAlerta("Excluída com sucesso!", "aviso");
+            fecharE_LimparModal();
+        } catch (error) {
+            mostrarAlerta("Erro ao excluir. ", "erro");
+        }
+    }
+});
+
+// Função auxiliar para fechar e resetar o modal
+function fecharE_LimparModal() {
+    formTransacao.reset();
+    transacaoEmEdicaoOriginal = null;
+    document.getElementById('btn-excluir-transacao').style.display = 'none';
+    document.getElementById('titulo-modal-transacao').innerText = 'Nova Transação';
+    modalTransacao.style.display = 'none';
+}
+
+
 // Ouvir os cliques no ícone de lápis (Delegação de eventos)
 document.getElementById('lista-transacoes').addEventListener('click', (e) => {
     // Verifica se clicou no lápis
-    const btnEditar = e.target.closest('.t-acoes');
+    const btnEditar = e.target.closest('.btn-editar');
     if (btnEditar) {
         const id = btnEditar.dataset.id;
         abrirModalEdicao(id);
@@ -489,31 +513,6 @@ function abrirModalEdicao(id) {
     // Abre o modal
     modalTransacao.style.display = 'flex';
 }
-
-// 2. O botão de Excluir
-document.getElementById('btn-excluir-transacao').addEventListener('click', async () => {
-    if (confirm("Tem certeza que deseja excluir esta transação?")) {
-        try {
-            await excluirTransacao(auth.currentUser.uid, transacaoEmEdicaoOriginal);
-            mostrarAlerta("Excluída com sucesso!", "aviso");
-            fecharE_LimparModal();
-        } catch (error) {
-            mostrarAlerta("Erro ao excluir. ", "erro");
-        }
-    }
-});
-
-// Função auxiliar para fechar e resetar o modal
-function fecharE_LimparModal() {
-    formTransacao.reset();
-    transacaoEmEdicaoOriginal = null;
-    document.getElementById('btn-excluir-transacao').style.display = 'none';
-    document.getElementById('titulo-modal-transacao').innerText = 'Nova Transação';
-    modalTransacao.style.display = 'none';
-}
-
-// Adicione no topo junto aos outros imports do db.js:
-import { limparBaseDeDados } from './db.js';
 
 // --- BOTÃO PROVISÓRIO DE LIMPEZA ---
 const btnLimparDados = document.getElementById('btn-limpar-dados');

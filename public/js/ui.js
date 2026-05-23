@@ -184,7 +184,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
     // 3. Descobrir o VERDADEIRO Saldo Anterior (Baseado no saldo final que o Firebase informou)
     // Se o saldoDeReferencia (final) for R$ 100, e o fluxo foi R$ +20, o mês começou com R$ 80.
     // const verdadeiroSaldoAnterior = saldoDeReferencia + fluxoDoMes;
-    const verdadeiroSaldoAnterior = saldoDeReferencia ;
+    const verdadeiroSaldoAnterior = saldoDeReferencia;
 
     // Atualiza o Card de Saldo Anterior com o valor retro-calculado
     if (cardSaldoAnterior) {
@@ -220,6 +220,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             displayConta += ' (Transf)';
         }
 
+        // <span class="t-acoes" style="cursor: pointer;" data-id="${t.id}">✏️</span>
         itemDiv.innerHTML = `
             <span>${dataStr}</span>
             <span title="${t.descricao}">${t.descricao}</span>
@@ -227,7 +228,9 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             <span>${displayConta}</span>
             <span class="text-right ${classeCor}">${formatarMoeda(valor)}</span>
             <span class="text-right coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
-            <span class="t-acoes" style="cursor: pointer;" data-id="${t.id}">✏️</span>
+            <div class="coluna-acao">
+              <button class="btn-acao btn-editar" data-id="${t.id}">✏️</button>
+            </div>
         `;
         container.appendChild(itemDiv);
     });
