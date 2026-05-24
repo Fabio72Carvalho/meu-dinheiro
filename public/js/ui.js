@@ -161,6 +161,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
     // 1. Atualiza o Card de Saldo Anterior com o valor já calculado na outra função
     if (cardSaldoAnterior) {
         cardSaldoAnterior.textContent = formatarMoeda(saldoDeReferencia);
+        cardSaldoAnterior.className = saldoDeReferencia >= 0 ? 'card-valor texto-receita' : 'card-valor texto-despesa';
     }
 
     const headerTransacao = getRequiredElement('transacao-hdr');
@@ -238,7 +239,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
     // 5. Atualiza o Card do Fluxo do Mês
     if (cardFluxoMes) {
         cardFluxoMes.textContent = formatarMoeda(fluxoDoMes);
-        cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-verde' : 'card-valor texto-vermelho';
+        cardFluxoMes.className = fluxoDoMes >= 0 ? 'card-valor texto-receita' : 'card-valor texto-despesa';
     }
 }
 

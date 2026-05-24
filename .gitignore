@@ -9,3 +9,4 @@ hosting.*.cache
 # Outros lixos de sistema
 .DS_Store
 node_modules/
+inventario-de-html.xlsx
