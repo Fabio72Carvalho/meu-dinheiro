@@ -201,6 +201,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
         return dataA - dataB;
     });
 
+    let dataAnterior = null;
     transacoesOrdenadas.forEach(t => {
         const valor = Number(t.valor) || 0;
         if (t.tipo === 'receita') {
@@ -221,7 +222,6 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             displayConta += ' (Transf)';
         }
 
-        // <span class="t-acoes" style="cursor: pointer;" data-id="${t.id}">✏️</span>
         itemDiv.innerHTML = `
             <span>${dataStr}</span>
             <span title="${t.descricao}">${t.descricao}</span>
@@ -234,6 +234,16 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             </div>
         `;
         container.appendChild(itemDiv);
+
+        if (dataStr !== dataAnterior) {
+            // Se a data mudou, adiciona uma linha de separação
+            const separator = document.createElement('div');
+            separator.className = 'text-right transacao-separator';
+            separator.innerHTML = `<span class="coluna-saldo-diario">Saldo do dia: ${formatarMoeda(saldoCorrido)}</span>`; // Exibe o saldo do dia
+            container.appendChild(separator);
+            dataAnterior = dataStr;
+        }
+
     });
 
     // 5. Atualiza o Card do Fluxo do Mês

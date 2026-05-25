@@ -281,6 +281,11 @@
     text-align: right;
 }
 
+.text-left {
+    justify-self: start;
+    text-align: left;
+}
+
 /* Garante o corte com os três pontinhos (...) caso o texto exceda a célula */
 .transacao-header span,
 .transacao-item span {
@@ -467,4 +472,18 @@
     opacity: 0; /* Invisível */
     cursor: pointer;
     z-index: 100; /* Garante que ele receba o clique antes do H3 */
+}
+
+/* REVIEW */
+.transacao-separator {
+    width: 100%;             
+    /* Removemos o height de 1px e o background inteiro */
+    /* height: 1px; */
+    /* background-color: #e0e0e0; */
+    
+    /* Adicionamos a linha como uma Borda Superior (ou Inferior) */
+    border-top: 1px solid #e0e0e0; 
+    
+    margin: 12px 0;          /* Margem para não grudar nos outros itens */
+    padding-top: 6px;        /* Espaço interno entre a linha e o texto do saldo */
 }
