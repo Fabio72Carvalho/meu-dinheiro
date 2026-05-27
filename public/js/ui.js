@@ -202,6 +202,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
     });
 
     let dataAnterior = null;
+    let primeiroDia = true;
     transacoesOrdenadas.forEach(t => {
         const valor = Number(t.valor) || 0;
         if (t.tipo === 'receita') {
@@ -214,7 +215,7 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
         itemDiv.className = 'transacao-item';
 
         const dataStr = t.data?.toDate ? t.data.toDate().toLocaleDateString('pt-BR') : new Date(t.data).toLocaleDateString('pt-BR');
-        const classeCor = t.tipo === 'receita' ? 'texto-receita' : 'texto-despesa';
+        let classeCor = t.tipo === 'receita' ? 'texto-receita' : 'texto-despesa';
 
         // Lógica para Transferência (exibe o nome da conta parceira se existir, senão a conta original)
         let displayConta = t.contaNome || 'Sem Conta';
@@ -222,27 +223,33 @@ export function renderizarTransacoes(transacoesFiltradas, saldoDeReferencia) {
             displayConta += ' (Transf)';
         }
 
+        // <span class="text-right coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
         itemDiv.innerHTML = `
+            <div class="coluna-acao">
+              <button class="btn-acao btn-editar" data-id="${t.id}">✏️</button>
+            </div>
             <span>${dataStr}</span>
             <span title="${t.descricao}">${t.descricao}</span>
             <span>${t.categoriaNome || 'Sem Categoria'}</span>
             <span>${displayConta}</span>
             <span class="text-right ${classeCor}">${formatarMoeda(valor)}</span>
-            <span class="text-right coluna-saldo-diario">${formatarMoeda(saldoCorrido)}</span>
-            <div class="coluna-acao">
-              <button class="btn-acao btn-editar" data-id="${t.id}">✏️</button>
-            </div>
         `;
         container.appendChild(itemDiv);
 
-        if (dataStr !== dataAnterior) {
-            // Se a data mudou, adiciona uma linha de separação
+        if (saldoCorrido >= 0) {
+            classeCor = 'texto-receita';
+        } else {
+            classeCor = 'texto-despesa';
+        }
+        // Se a data mudou, mostra o saldo do dia e adiciona uma linha de separação
+        if (!primeiroDia && dataStr !== dataAnterior) {
             const separator = document.createElement('div');
             separator.className = 'text-right transacao-separator';
-            separator.innerHTML = `<span class="coluna-saldo-diario">Saldo do dia: ${formatarMoeda(saldoCorrido)}</span>`; // Exibe o saldo do dia
+            separator.innerHTML = `<span class="saldo-diario">Saldo do dia: </span><span class="saldo-diario ${classeCor}">${formatarMoeda(saldoCorrido)}</span>`; // Exibe o saldo do dia
             container.appendChild(separator);
             dataAnterior = dataStr;
         }
+        primeiroDia = false;
 
     });
 

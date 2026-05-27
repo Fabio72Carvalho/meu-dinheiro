@@ -238,8 +238,8 @@
 .transacao-header,
 .transacao-item {
     /* Divide a linha milimetricamente: apenas a descrição diminui se faltar espaço */
-    grid-template-columns: 90px minmax(0, 1fr) 130px 120px 110px 110px 50px;
-    gap: 15px;
+    grid-template-columns: 25px 90px minmax(0, 1fr) 130px 120px 110px;
+    gap: 10px;
     align-items: center;
     width: 100%;
     padding: 4px 0;
@@ -486,4 +486,10 @@
     
     margin: 12px 0;          /* Margem para não grudar nos outros itens */
     padding-top: 6px;        /* Espaço interno entre a linha e o texto do saldo */
+}
+
+.saldo-diario {
+    font-weight: bold;
+    font-size: 0.7rem;
+    font-style: italic;
 }
